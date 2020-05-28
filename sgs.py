@@ -73,25 +73,33 @@ def sgs(activities, resources):
     durations = [i.duration for i in activities]
     S = [activities[0]] # First dummy activity
     l = activities[-1].id
-    F = l*[0]
+    F = (l+1)*[0]
     LF = calculate_latest_finish(activities)
     D = []
     activities[0].start = activities[0].end = 0 # dummy
     for i in range(l):
-        print([i.id for i in S])
+        #print([i.id for i in S])
         resources.calculate_resources(S)
-        #if len(D) == 0:     # We only need to calculate eligible activities if there are none left
         D = calculate_eligible_activities(activities, resources)
-        cur_activity = D[0] # Select one j \in D_{g}. We default to the first one
-        precedent_finish_times = [F[activities[j]] for j in cur_activity.predecessors]
+
+        #print([z.id for z in D])
+        chosen_activity = D[0] 
+        chosen_resources = sum(chosen_activity.required_resources)
+        for j in D:
+            if sum(j.required_resources) > chosen_resources: # We choose the activity that takes the most resources
+                chosen_activity = j
+        cur_activity = chosen_activity
+        
+        
+        # WE NEED TO CHECK IF WE CAN STACK ACTIVITIES TOGETHER
+        precedent_finish_times = [F[j.id] for j in cur_activity.predecessors] # YOU ARE HERE RIGHT NOW
         if precedent_finish_times == []:
             precedent_finish_times = [0]
         EF = max(precedent_finish_times) + cur_activity.duration # We only need EF_{j} for iteration j
         possible_times = calculate_possible_times(activities[i], F, EF)
         cur_activity.start = min(possible_times)
         cur_activity.end = cur_activity.start + cur_activity.duration
-
-        print([j.id for j in D])
+ 
         
         F[cur_activity.id] = cur_activity.end
         cur_activity.scheduled = True
@@ -99,9 +107,10 @@ def sgs(activities, resources):
             S.append(D[0])
         if i < l-1: 
             D.pop(0) # We scheduled the first of the eligibles, so we can remove         
-        print(F)
+        #print(F)
                 
     F[-1] = max(F) # The last activity will be a precedent of activity n
+    print(F)
     return F[-1]
 
 
@@ -115,29 +124,23 @@ def calculate_latest_finish(activities):
                 
 def calculate_possible_times(cur_activity, F, EF):
     j = cur_activity.id
-    LF = 1000 # delete this later, should be argument
+    LF = 1000 # delete this later, should be an argument
     initial_times = [i for i in F if i >= EF - cur_activity.duration and i <= LF - cur_activity.duration] # This is just that big train in the paper
-    possible_times = []
-    '''for t in initial_times:
-        impossible = 0
-        for resource in resources:
-            for time in range(t, t + activity.duration):
-                if available_resources[time] < resource[j][k]:
-                    impossible = 1
-                    break
-            if impossible == 1:
-                break
-        if impossible == 0:
-            possible_times.append(t)'''
-
     
+    possible_times = []    
     for t in initial_times:
-        if all(cur_activity.required_resources[i] <  resources.available_resources[t][i] for i in range(resources.number_of)):
+        
+        if all(cur_activity.required_resources[i] <=  resources.available_resources[t][i] for i in range(resources.number_of)):
             possible_times.append(t)
 
-    # YOU HAVE TO WORK HERE. 
+    if initial_times == []:
+        possible_times = [max(F)-1] # I THINK THE PROBLEM IS HERE
+
     if possible_times == []:
-        possible_times = [max(initial_times)+1]
+        possible_times = [max(initial_times)]
+    if cur_activity.id == 1:
+        print(possible_times)
+
     return possible_times
 
 
@@ -145,7 +148,7 @@ def calculate_possible_times(cur_activity, F, EF):
 def calculate_eligible_activities(activities, resources):
     n_resources = resources.number_of
     unscheduled_activities = [i for i in activities if i.scheduled == False]
-    # removing unscheduled activities whose precedents haven't been scheduled. 
+    # removing unscheduled activities whose precedents haven't been scheduled.
     to_remove = []
     for i in unscheduled_activities:
         for j in i.predecessors:
@@ -158,8 +161,17 @@ def calculate_eligible_activities(activities, resources):
         for t in resources.available_resources:
             if all(cur_activity.required_resources < resources.available_resources[t] for i in range(resources.number_of)):
                 cur_activity.start = t # I am not sure about this
-                cur_activity.end = cur_activity.start + cur_activity.duration
+                cur_activity.end = cur_activity.start + cur_activity.duration 
                 eligible_activities.append(cur_activity)
+
+    if eligible_activities == []:
+        chosen_activity = unscheduled_activities[0]
+        chosen_resources = sum(chosen_activity.required_resources)
+        for i in unscheduled_activities:
+            if sum(i.required_resources) > chosen_resources:
+                chosen_activity = i
+        eligible_activities.append(chosen_activity)
+    #print([i.id for i in unscheduled_activities])
     return eligible_activities
 
 
@@ -222,4 +234,24 @@ resources = Resources()
 resources.number_of = 1
 resources.max_capacity = [4]
 resources.available_resources = {0: [4]}
+calculate_precedents(activities)
 sgs(activities, resources)
+
+
+'''
+a = Activity([0,0,[0,0],[1,2]])
+b = Activity([1,3,[2,1],[3]])
+c = Activity([2,4,[2,1],[3,4]])
+d = Activity([3,6,[2,1],[5]])
+e = Activity([4,2,[2,1],[5,6]])
+f = Activity([5,1,[3,0],[7]])
+g = Activity([6,4,[3,1],[7]])
+h = Activity([7,0,[0,0],[]])
+activities = [a,b,c,d,e,f,g,h]
+resources = Resources()
+resources.number_of = 2
+resources.max_capacity = [4,2]
+resources.available_resources = {0: [4,2]} 
+calculate_precedents(activities)
+sgs(activities, resources) 
+'''
