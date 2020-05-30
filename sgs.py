@@ -14,8 +14,8 @@ class Resources:
                 #if time in resources.available_resources:
                 #    resources.available_resources[time] = [resources.available_resources[time][r_k] - j.required_resources[r_k] for r_k in range(resources.number_of)]
                 
-                    resources.available_resources[time] = [resources.max_capacity[r_k] - j.required_resources[r_k] for r_k in range(resources.number_of)]                    
-        return resources.available_resources
+                    self.available_resources[time] = [self.max_capacity[r_k] - j.required_resources[r_k] for r_k in range(self.number_of)]                    
+        return self.available_resources
 
 
 
@@ -54,14 +54,69 @@ def read_file(file):
     #[..., [activity i, duration, [resources], [sucecessors]], ....]
     # So, for jobnr. 1 of j30 of the first dataset we have
     # [[1, 0, [0,0,0,0], [2,3,4]], [2, 2, [1,2,4,0], [10,11,28]], ... ]
-    activities = [Activity(information)]
-    for i in activities:
-        i.calculate_precedents()
+
+    # file = 'j30.sm'
+    with open(file) as fp:
+        precedence_relations = []
+        requests_duration = []
+        for i, line in enumerate(fp):
+            #if i > 10:
+            #    print(line)
+            if i == 14:
+                a = line
+            elif i>17 and i < 50:
+                precedence_relations.append(line)
+            elif i == 89:
+                resource_capacity = line
+            elif i > 53 and i < 86:
+                requests_duration.append(line)
+            if i > 88:
+                break
+        
+
+
+
+    precedence_relations = [" ".join(i.split()) for i in precedence_relations]
+    precedents = []
+    for i in precedence_relations:
+        precedents.append([int(n) for n in i.split()])
+    for i in range(32):
+        precedents[i].pop(1)
+        precedents[i].pop(1)
+        if len(precedents[i]) > 1:
+            x = [precedents[i][1:]]
+            precedents[i] = [precedents[i][0]] + x
+        else:
+            precedents[i] = precedents[i] + [[]]
+
+
+    requests_duration = [" ".join(i.split()) for i in requests_duration]
+    resource_duration = []
+    for i in requests_duration:
+        resource_duration.append([int(n) for n in i.split()])
+    for i in range(32):
+        resource_duration[i].pop(1)
+        x = [resource_duration[i][2:]]
+        resource_duration[i] = [resource_duration[i][0]] + [resource_duration[i][1]] + x 
+        
+
+
+    final = [resource_duration[i] + [precedents[i][1]] for i in range(32)]
+
+    activities = []
+    for i in final:
+        activities.append(Activity(i))
+    calculate_precedents(activities)
+        
+    resource_capacity = [int(n) for n in resource_capacity.split()]
     resources = Resources()
-    resources.max_capacity = asokdmasoadsomdIJSDNFIJNDSFIJSasipoads # Reading the file
-    resources.available_resources = resources.max_capacity
+    resources.max_capacity = resource_capacity # Reading the file
     resources.number_of = len(resources.available_resources)
+    resources.available_resources = {0: resources.max_capacity}
+
     return [activities, resources]
+
+
 
 
 
@@ -104,7 +159,7 @@ def sgs(activities, resources):
             precedent_finish_times = [0]
         EF = max(precedent_finish_times) + cur_activity.duration # We only need EF_{j} for iteration j
         print(cur_activity.id)
-        possible_times = calculate_possible_times(cur_activity, F, EF)
+        possible_times = calculate_possible_times(cur_activity, resources, F, EF)
         cur_activity.start = min(possible_times)
         cur_activity.end = cur_activity.start + cur_activity.duration
         
@@ -118,6 +173,7 @@ def sgs(activities, resources):
                 
     F[-1] = max(F) # The last activity will be a precedent of activity n
     print(F)
+    return [activities, resources]
     return F[-1]
 
 
@@ -129,7 +185,7 @@ def calculate_latest_finish(activities):
     return
 
                 
-def calculate_possible_times(cur_activity, F, EF):
+def calculate_possible_times(cur_activity, resources, F, EF):
     j = cur_activity.id
     LF = 1000 # delete this later, should be an argument
     initial_times = [i for i in F if i >= EF - cur_activity.duration and i <= LF - cur_activity.duration] # This is just that big train in the paper
@@ -201,18 +257,28 @@ def resource_dependencies(activities):
 
 
 
-
-
-
 def calculate_precedents(activities):
     predecessors = []
     ids = [i.id for i in activities]
     for i in activities:
         for j in i.successors:
             activities[ids.index(j)].predecessors.append(i)
-            
-    
 
+
+def run(file):
+    a = read_file(file)
+    return sgs(a[0], a[1])
+
+def test_correctness(activities, resources):
+    for i in resources.available_resources:
+        if not all(resources.available_resources[i][k] >= 0 for k in range(resources.number_of)):
+            print('Resource Capacity exceeded')
+    for i in activities:
+        if not all(i.start >= j.end for j in i.predecessors):
+            print('Activity started before precedent')
+    print('Everything seems to be okay')
+    
+'''
 
 a = Activity([0,0,[0],[1,2]])
 b = Activity([1,3,[2],[3]])
@@ -229,7 +295,7 @@ resources.max_capacity = [4]
 resources.available_resources = {0: [4]}
 calculate_precedents(activities)
 sgs(activities, resources)
-
+'''
 
 '''
 a = Activity([0,0,[0,0],[1,2]])
@@ -247,8 +313,5 @@ resources.max_capacity = [4,2]
 resources.available_resources = {0: [4,2]} 
 calculate_precedents(activities)
 sgs(activities, resources) 
-'''
 
-for i in resources.available_resources:
-    if not all(resources.available_resources[i][k] >= 0 for k in range(resources.number_of)):
-        print('False')
+'''
