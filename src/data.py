@@ -3,15 +3,15 @@ import copy
 class Job:
     def __init__(self, id):
         self.id = id
-        self.duration = 0       # int
-        self.resources = []     # array of int (resource id)
-        self.nsucessors = 0     # int
-        self.sucessors = []     # array of int (job id)
-        self.predecessors = []  # array of int (job id)
+        self.duration = 0     # int
+        self.resources = []   # array of int (resource id)
+        self.nsuccessors = 0  # int
+        self.successors = []  # array of int (job id)
+        self.ready = 0        # ready == 0 when all predecessors are complete
         
     def __str__(self):
-        return "Job {}\nduration: {}\nresources: {}\nsucessors: {}".format(
-                    self.id, self.duration, self.resources, self.sucessors)
+        return "Job {}\nduration: {}\nresources: {}\nsuccessors: {}\nready:{}".format(
+                    self.id, self.duration, self.resources, self.successors, self.ready)
 
 
 class Problem:
@@ -19,7 +19,14 @@ class Problem:
         self.njobs = 0          # int
         self.jobs = []          # array of Job
         self.nresources = 0     # int
-        self.resources = []     # array of Resource
+        self.resources = []     # resources[i] = capacity of resource i
+
+        # switch to struct-of-arrays if original solution is too slow        
+        # self.durations      = [] # durations[j] = duration of job j
+        # self.resource_uses  = [] # resource_uses[j] = resource usage of job j
+        # self.nsuccessors    = [] # nsucessors[j] = number of successors for job j
+        # self.successors     = [] # sucessors[j] = list of successors of job j
+        # self.ready          = [] # ready[j] == 0 if all predecessors of j are completed
 
     def __str__(self):
         return "njobs:\t\t{}\nresources:\t{}\n".format(
@@ -51,12 +58,16 @@ def read_relations(prob, lines, job_start_line):
     for i in range(job_start_line, job_end_line):
         l = lines[i].split()
         job            = Job(int(l[0]) - 1)
-        job.nsucessors = int(l[2])
-        job.sucessors  = [int(s) for s in l[-job.nsucessors:]]
+        job.nsuccessors = int(l[2])
+        job.successors  = [int(s) - 1 for s in l[-job.nsuccessors:]]
         prob.jobs.append(job)
     
     prob.jobs.append(Job(prob.njobs - 1))
     
+    for j in prob.jobs:
+        for succ in j.successors:
+            prob.jobs[succ].ready += 1
+
     return job_end_line
 
 def read_job_stats(prob, lines, resource_start_line):
@@ -69,8 +80,3 @@ def read_job_stats(prob, lines, resource_start_line):
         prob.jobs[id].resources = [int(r) for r in l[-prob.nresources:]]
 
     return resource_end_line
-
-prob = read_file("data/j60/j601_2.sm")
-print(prob)
-for j in prob.jobs:
-    print(j)
