@@ -1,15 +1,13 @@
+import copy
+
 class Job:
-    def __init__(self):
-        self.id = -1            # int
+    def __init__(self, id):
+        self.id = id
         self.duration = 0       # int
         self.resources = []     # array of int (resource id)
         self.nsucessors = 0     # int
         self.sucessors = []     # array of int (job id)
         self.predecessors = []  # array of int (job id)
-
-    def __init__(self, id):
-        __init__(self)
-        self.id = id
         
     def __str__(self):
         return "Job {}\nduration: {}\nresources: {}\nsucessors: {}".format(
@@ -45,6 +43,8 @@ def read_file(file):
         prob.resources = [int(r) for r in l]
 
         f.close()
+    
+    return prob
 
 
 def read_relations(prob, lines, job_start_line):
@@ -52,8 +52,7 @@ def read_relations(prob, lines, job_start_line):
 
     for i in range(job_start_line, job_end_line):
         l = lines[i].split()
-        job = Job()
-        job.id         = int(l[0]) - 1
+        job            = Job(int(l[0]) - 1)
         job.nsucessors = int(l[2])
         job.sucessors  = [int(s) for s in l[-job.nsucessors:]]
         prob.jobs.append(job)
