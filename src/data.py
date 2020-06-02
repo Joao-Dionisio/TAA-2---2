@@ -6,6 +6,10 @@ class Job:
         self.nsucessors = 0     # int
         self.sucessors = []     # array of int (job id)
         self.predecessors = []  # array of int (job id)
+
+    def __init__(self, id):
+        __init__(self)
+        self.id = id
         
     def __str__(self):
         return "Job {}\nduration: {}\nresources: {}\nsucessors: {}".format(
@@ -54,9 +58,7 @@ def read_relations(prob, lines, job_start_line):
         job.sucessors  = [int(s) for s in l[-job.nsucessors:]]
         prob.jobs.append(job)
     
-    end = Job()
-    end.id = prob.njobs - 1
-    prob.jobs.append(end)
+    prob.jobs.append(Job(prob.njobs - 1))
     
     return job_end_line
 
