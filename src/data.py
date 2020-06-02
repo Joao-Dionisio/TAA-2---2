@@ -20,11 +20,10 @@ class Problem:
         self.jobs = []          # array of Job
         self.nresources = 0     # int
         self.resources = []     # array of Resource
-        self.duedate = 0        # int
 
     def __str__(self):
-        return "njobs:\t\t{}\nresources:\t{}\nduedate:\t{}\n".format(
-                    self.njobs, self.resources, self.duedate)
+        return "njobs:\t\t{}\nresources:\t{}\n".format(
+                    self.njobs, self.resources)
 
 def read_file(file):
     prob = Problem()
@@ -34,7 +33,6 @@ def read_file(file):
 
         prob.njobs      = int(lines[5].split(":")[1])
         prob.nresources = int(lines[8].split(":")[1].split()[0])
-        prob.duedate    = int(lines[14].split()[3])
 
         rel_end_line   = read_relations(prob, lines, 18)
         stats_end_line = read_job_stats(prob, lines, rel_end_line + 5)
@@ -71,3 +69,8 @@ def read_job_stats(prob, lines, resource_start_line):
         prob.jobs[id].resources = [int(r) for r in l[-prob.nresources:]]
 
     return resource_end_line
+
+prob = read_file("data/j60/j601_2.sm")
+print(prob)
+for j in prob.jobs:
+    print(j)
