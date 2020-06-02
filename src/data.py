@@ -1,5 +1,3 @@
-import copy
-
 class Job:
     def __init__(self, id):
         self.id = id
@@ -11,7 +9,7 @@ class Job:
         
     def __str__(self):
         return "Job {}\nduration: {}\nresources: {}\nsuccessors: {}\nready:{}".format(
-                    self.id, self.duration, self.resources, self.successors, self.ready)
+            self.id, self.duration, self.resources, self.successors, self.ready)
 
 
 class Problem:
@@ -29,8 +27,7 @@ class Problem:
         # self.ready          = [] # ready[j] == 0 if all predecessors of j are completed
 
     def __str__(self):
-        return "njobs:\t\t{}\nresources:\t{}\n".format(
-                    self.njobs, self.resources)
+        return "njobs:\t\t{}\nresources:\t{}\n".format(self.njobs, self.resources)
 
 def read_file(file):
     prob = Problem()
@@ -76,7 +73,7 @@ def read_job_stats(prob, lines, resource_start_line):
     for i in range(resource_start_line, resource_end_line):
         l = lines[i].split()
         id = int(l[0]) - 1
-        prob.jobs[id].duration  = l[2]
+        prob.jobs[id].duration  = int(l[2])
         prob.jobs[id].resources = [int(r) for r in l[-prob.nresources:]]
 
     return resource_end_line
