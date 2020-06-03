@@ -24,137 +24,115 @@ there's space left, and that only happens if the resource needed are smaller tha
 
 '''
 from copy import copy
-
+from sgs import *
+import gc
 
 
 class Solution:
+    def __init__(self):
+        self.best_F = 33*[float('inf')]
 
-    # This should be unchanged
-    def read_file():
-        return
-
-        
-    class Resources:
-        def __init__(self):
-            self.number_of = -1
-            self.max_capacity = []
-            self.available_resources = {}
-
-       # We are doing the same thing multiple times. Instead of scheduled_activities, we should only pass the most recent activity to be scheduled
-        def calculate_resources(self, scheduled_activities):
-            activity_intersections = resource_dependencies(scheduled_activities) # {finish_time_1: [r_1(1),...,r_k(1)], ... , finish_time_n: [r_1(n),...,r_k(n)]}
-            for time in activity_intersections:
-                for j in activity_intersections[time]:
-                    #if time in resources.available_resources:
-                    #    resources.available_resources[time] = [resources.available_resources[time][r_k] - j.required_resources[r_k] for r_k in range(resources.number_of)]
-                    
-                        self.available_resources[time] = [self.max_capacity[r_k] - j.required_resources[r_k] for r_k in range(self.number_of)]                    
-            return self.available_resources
-
-
-
-    class Activity:
-        def __init__(self, information):
-            self.id = information[0]  
-            self.duration = information[1]
-            self.required_resources = information[2]
-            self.successors = [i for i in information[3]]
-            self.predecessors = []
-            self.scheduled = False
-            self.start = None
-            self.end = None #self.start + self.duration
-
-        def calculate_precedents(self, activities):
-            # I'm gonna assume no one's an asshole and that you can only be a successor of an activity with a lower number than yours
-            predecessors = []
-            for i in range(len(self.successors)):
-                cur_predecessor = []
-                for j in range(i):
-                        if i in self.successors[j]:
-                            cur_predecessor.append(j)
-                predecessors.append(cur_predecessor)
-            self.predecessors = predecessors
-
-
-
-# best = float('inf') at the start
-
-
-
-def complete_search(activities, resources, S, best):
-    durations = [i.duration for i in activities]
-    S = [activities[0]] # First dummy activity
-    l = activities[-1].id
-    F = (l+1)*[0]
-    LF = calculate_latest_finish(activities)
-    D = []
-    activities[0].start = activities[0].end = 0 # dummy
-    for i in range(l):
-        
-        resources.calculate_resources(S)
-        D = calculate_eligible_activities(activities, resources)
-
-        for j in D:
-            # Divide into every possible branch
-            a = complete_search(activities, resources, S)
-            if a[0] < best:
-                best = a[0]
-                best_schedule = a[1]
-        cur_activity = chosen_activity
-             
-    
-        precedent_finish_times = [F[j.id] for j in cur_activity.predecessors] # YOU ARE HERE RIGHT NOW
-        if precedent_finish_times == []:
-            precedent_finish_times = [0]
-        EF = max(precedent_finish_times) + cur_activity.duration # We only need EF_{j} for iteration j
-        print(cur_activity.id)
-        possible_times = calculate_possible_times(cur_activity, resources, F, EF)
-        cur_activity.start = min(possible_times)
-        cur_activity.end = cur_activity.start + cur_activity.duration
-        
-        
-        F[cur_activity.id] = cur_activity.end
-        cur_activity.scheduled = True
-        if chosen_activity.id != 0:
-            S.append(chosen_activity)
-        if i < l-1:
-            D.remove(chosen_activity)
-                
-    F[-1] = max(F) # The last activity will be a precedent of activity n
-    print(F)
-    return [F[-1], [activities, resources]]
-
+def start_complete_search(activities, resources, file):
+    sol = Solution()
+    sol.best_F = run(file)
+    print(sol.best_F)
+    S = (len(activities)+1)*[0]
+    S[0] = 1
+    S[1] = 1
+    return complete_search(activities, resources, S, (len(activities)+1)*[0], sol.best_F, 0)
 
 
 # Performs a DFS on all possible solutions
-def complete_search(activities, resources, ):
-    eligible_activities = calculate_eligible_activities(activities, resources)
-    for i in eligible_activities:
-        cur_time = min(calculate_possible_times(activities, i, resources, F, EF))
-        if cur_time + i.duration < best_so_far:
+def complete_search(activities, resources, S, F, best_F, recursion_level):
+    #print(F)
+    eligible_activities = calculate_eligible_activities_2(activities, resources, S)
+    l = len(eligible_activities)
+    for j in range(l):
+        i = eligible_activities[j]
+        precedent_finish_times = [F[j.id] for j in i.predecessors]
+        EF = max(precedent_finish_times) + i.duration
+        cur_time = min(calculate_possible_times_2(activities, i, resources, F, EF))
+        if cur_time + i.duration < best_F[-1]:
             cur_F = F
             cur_F[i.id] = cur_time + i.duration
-            # WE NEED TO UPDATE THE RESOURCES
             cur_resources = copy(resources)
-            for i in cur_resources:
-                if i > cur_time and i < cur_time + i.duration:
-                    for j in resources.number_of:
-                        cur_resources[i][j]-=i.required_resources[j]
-            x[-1] = complete_search(activities, cur_resources, cur_F)
-            if cur_F[-1] < best_F[-1]:
-                best_F = cur_F
-    return best_F
+            for k in cur_resources.available_resources:
+                if k > cur_time and k < cur_time + i.duration:
+                    for j in range(resources.number_of):
+                        cur_resources[k][j]-=i.required_resources[j]
+            cur_S = copy(S)
+            cur_S[i.id] = 1
+            if 0 in cur_S[2:]:
+                if recursion_level < 6:
+                    complete_search(activities, cur_resources, cur_S, cur_F, sol.best_F, recursion_level+1)
+                else:
+                    cur_F = find_solution(activities, cur_resources, cur_S, cur_F)
+                    S = (len(activities)+1)*[1]
+            #print(sol.best_F)
+            #print(cur_F)
+            #print(i)
+            if cur_F[-1] < sol.best_F[-1] and 0 not in S:
+                #print('asd')
+                sol.best_F = cur_F
+        gc.collect()
+    return sol.best_F
 
 
-def add_activity(scheduled_activities, cur_activity, F):
-    a = calculate_possible_times(scheduled_activities, cur_activity)
-    F[cur_activity.id] = min(a) + cur_activity.duration
-    return F
+def find_solution(activities, cur_resources, S, cur_F):
+    while 0 in S[:-1]:
+        eligible_activities = calculate_eligible_activities_2(activities, cur_resources, S)
+        chosen_activity = eligible_activities[0]
+        chosen_resources = sum(chosen_activity.required_resources)
+        for j in eligible_activities:
+            if sum(j.required_resources) > chosen_resources:
+                chosen_activity = j
+        cur_activity = chosen_activity
+        precedent_finish_times = [cur_F[j.id] for j in cur_activity.predecessors]
+        EF = max(precedent_finish_times) + cur_activity.duration
+        #possible_times = min(calculate_possible_times_2(cur_activity, cur_resources, cur_F, EF))
+        cur_time = min(calculate_possible_times_2(activities, cur_activity, cur_resources, cur_F, EF))
+        cur_F[cur_activity.id] = cur_time + cur_activity.duration
+        S[cur_activity.id] = 1
+    cur_F[-1] = max(cur_F)
+    S[-1] = 1
+    return cur_F
+    
+
+#WE ARE ASSUMING THAT, BESIDES ACTIVITY 0 (AND -1), THERE ARE NO ACTIVITIES WITH DURATION 0
+def calculate_eligible_activities_2(activities, resources, cur_S):
+    n_resources = resources.number_of
+    unscheduled_activities = [i for i in activities if cur_S[i.id] == 0] # The unscheduled activities are the ones that aren't in S. Activity 0 ends at 0, so it's discarded
+    # removing unscheduled activities whose precedents haven't been scheduled.
+    to_remove = []
+    for i in unscheduled_activities:
+        for j in i.predecessors:
+            if cur_S[j.id] == 0: 
+                to_remove.append(i)
+                break
+    unscheduled_activities = [i for i in unscheduled_activities if i not in to_remove]
+    eligible_activities = []
+    for cur_activity in unscheduled_activities:
+        for t in resources.available_resources:
+            if all(cur_activity.required_resources <= resources.available_resources[t] for i in range(resources.number_of)):
+                cur_activity.start = t # I am not sure about this
+                cur_activity.end = cur_activity.start + cur_activity.duration 
+                eligible_activities.append(cur_activity)
+
+    if eligible_activities == []:
+        chosen_activity = unscheduled_activities[0]
+        chosen_resources = sum(chosen_activity.required_resources) 
+        for i in unscheduled_activities:
+            if sum(i.required_resources) > chosen_resources:
+                chosen_activity = i
+        eligible_activities.append(chosen_activity)
+    #print([i.id for i in unscheduled_activities])
+    #print([i.id for i in eligible_activities])    
+    return eligible_activities
 
 
 
 # We need to be careful with resources and activities
-def calculate_possible_times(activities, cur_activity, resources, F, EF):
+def calculate_possible_times_2(activities, cur_activity, resources, F, EF):
     j = cur_activity.id
     LF = 1000 # delete this later, should be an argument
     initial_times = [i for i in F if i >= EF - cur_activity.duration and i <= LF - cur_activity.duration] # This is just that big train in the paper
@@ -173,8 +151,9 @@ def calculate_possible_times(activities, cur_activity, resources, F, EF):
     return possible_times
 
 
+sol = Solution()
+a = read_file('j3048_7.sm')
+b = start_complete_search(a[0], a[1], 'j3048_7.sm')
 
-def caclulate_schedule(activities, resources, S):
-    
-    return
-
+if b != sgs(a[0], a[1]):
+    print('asdasd')
