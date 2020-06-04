@@ -4,29 +4,25 @@ from copy import copy, deepcopy
 
 from data import *
 
-
 class Solution:
     def __init__(self, prob):
         self.prob = deepcopy(prob)
 
-        # array of int indexed by job id
-        self.finish_time = [0] * prob.njobs
+        self.finish_time     = [0] * prob.njobs
 
         self.earliest_start  = [0] * prob.njobs
         self.earliest_finish = [0] * prob.njobs
         self.latest_start    = [0] * prob.njobs
         self.latest_finish   = [0] * prob.njobs
 
-        self.duration = 0
-
         # set of scheduled job ids
         self.scheduled = set()
 
-        # set of jobs that can be scheduled
+        # set of jobs that can be scheduledt
         self.eligible = set()
 
         # set of unprocessed jobs
-        self.unprocessed = [i for i in range(0, prob.njobs)]
+        self.unprocessed = list(range(0, prob.njobs))
 
 
     def calc_eligible(self):
@@ -34,7 +30,7 @@ class Solution:
 
         for j in self.unprocessed:
             job = self.prob.jobs[j]
-            if (job.is_ready()):
+            if job.is_ready():
                 eligible.add(j)
 
         self.eligible |= eligible
@@ -48,14 +44,10 @@ class Solution:
 
         for j in job.successors:
             self.prob.jobs[j].in_degree -= 1
-            self.prob.jobs[j].earliest_start = max(
-                self.prob.jobs[j].earliest_start,
-                start_time + job.duration)
 
     def calc_remaining(self, t):
         remaining = copy(self.prob.resources)
-        active = self.active_jobs(t)
-        for j in active:
+        for j in self.active_jobs(t):
             remaining = [a - b for a, b in zip(remaining, j.resources)]
         return remaining
 
@@ -64,62 +56,23 @@ class Solution:
         for j in self.prob.jobs:
             if t < self.finish_time[j.id] and self.finish_time[j.id] - j.duration <= t:
                 active.add(j)
-
         return active
 
     def select(self):
         return self.eligible.pop()
 
-        # job = -1
-        # max_d = 999999
-        # for j in self.eligible:
-        #     if self.prob.jobs[j].duration < max_d:
-        #         max_d = self.prob.jobs[j].duration
-        #         job = j
-            
-        # max_r = 9999999
-        # job = -1
-        # for j in self.eligible:
-        #     r = sum(self.prob.jobs[j].resources)
-        #     if r < max_r:
-        #         job = j
-        #         max_r = r
-
-        # self.eligible.remove(job)
-        # return job
-
-    def forward_pass(self):
-        q = queue.SimpleQueue()
-        jobs = deepcopy(self.prob.jobs)
-
-        q.put(jobs[0])
-
-        while(q.empty() == False):
-            job = q.get()
-            t = self.earliest_start[job.id] + job.duration
-            for j in job.successors:
-                succ = jobs[j]
-                if (self.earliest_start[j] <= t):
-                    self.earliest_start[j] = t
-                    self.earliest_finish[j] = t + succ.duration
-                succ.in_degree -= 1
-                if succ.is_ready():
-                    q.put(succ)
-
-        self.duration = self.earliest_finish[-1]
-
     def backward_pass(self):
         q = queue.SimpleQueue()
         jobs = deepcopy(self.prob.jobs)
 
+        # Total sum of job durations works as an upperbound
         upper_bound = sum([job.duration for job in self.prob.jobs])
 
-        #self.latest_finish = [self.duration] * self.prob.njobs
         self.latest_finish = [upper_bound] * self.prob.njobs
         self.latest_start = [-1] * self.prob.njobs
 
         q.put(jobs[-1])
-        self.latest_start[-1] = self.duration
+        self.latest_start[-1] = upper_bound
 
         while q.empty() == False:
             job = q.get()
@@ -133,24 +86,17 @@ class Solution:
                 if pred.nsuccessors == 0:
                     q.put(pred)
 
-def is_feasible(job, remaining):
-    result = True
-    for (r, R) in zip(job.resources, remaining):
-        result = result and r <= R
-    return result
+
+def is_resource_feasible(job, remaining):
+    return all([r <= R for (r, R) in zip(job.resources, remaining)])
 
 
 def sgs(prob):
     sol = Solution(prob)
 
-    sol.forward_pass()
+    # Calculate LF for this instance
     sol.backward_pass()
     
-    # print(f"ES {sol.earliest_start}")
-    # print(f"EF {sol.earliest_finish}")
-    # print(f"LS {sol.latest_start}")
-    # print(f"LF {sol.latest_finish}")
-
     # Insert dummy start job
     sol.schedule(id=0, start_time=0)
 
@@ -179,52 +125,33 @@ def sgs(prob):
         # Calculate EF
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
         LF = sol.latest_finish[j]
-        print(f"EF_j = {EF} or {job.earliest_start + job.duration} or {sol.earliest_finish[j]}")
-        print(f"LF_j = {LF}")
+        print(f"EF_j = {EF}; LF_j = {LF}")
 
-        # Calculate finish time of job
-        #sol.finish_time[j] = min
-
-        # print("-------feasibility-------")
-        print(job.resources)
+        # Calculate all times with resource feasibility    
         possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
         feasible_times = []
         for t in possible_times:
-            # print(f"t = {t}")
             taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
-            # print(f"taus: {taus}")
-            feasible = True
-            for tau in taus:
-                feasible = feasible and is_feasible(job, remaining[tau])
-            if feasible:
+            if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                 feasible_times.append(t)
-        # print("------------------------")
 
         print(f"Possible times = {possible_times}")
         print(f"Feasible times = {feasible_times}")
 
-        # delete when fixed
-        # if feasible_times == []: feasible_times = [sol.earliest_start[j]]
-
         start = min(feasible_times)
-        # sol.finish_time[j] = start + job.duration
 
         # Add job to solution
         sol.schedule(start, j)
         print(f"Scheduled {j} at {start}")
-
         print("---------------------------------")
 
-    # for j in sol.prob.jobs:
-    #     print(j.earliest_start)
-
-    print(sol.finish_time)
-    print(len(sol.finish_time))
-    # print(sol.prob.jobs[-1].earliest_start)
+    return sol
     
 if __name__ == "__main__":
     file = "data/j30/j301_1.sm"
-    if (len(sys.argv) > 1):
+    if len(sys.argv) > 1:
         file = sys.argv[1]
     prob = read_file(file)
-    sgs(prob)
+    sol  = sgs(prob)
+
+    print(sol.finish_time)

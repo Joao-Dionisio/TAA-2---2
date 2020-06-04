@@ -8,7 +8,7 @@ class Job:
         self.npredecessors = 0   # int
         self.predecessors = []   # array of int (job id)
         self.in_degree = 0       # int
-        self.earliest_start = 0
+        self.earliest_start = 0  # int
 
     def is_ready(self):
         return self.in_degree == 0
@@ -20,17 +20,10 @@ class Job:
 
 class Problem:
     def __init__(self):
-        self.njobs = 0          # int
-        self.jobs = []          # array of Job
-        self.nresources = 0     # int
-        self.resources = []     # resources[i] = capacity of resource i
-
-        # switch to struct-of-arrays if original solution is too slow
-        # self.durations      = [] # durations[j] = duration of job j
-        # self.resource_uses  = [] # resource_uses[j] = resource usage of job j
-        # self.nsuccessors    = [] # nsucessors[j] = number of successors for job j
-        # self.successors     = [] # sucessors[j] = list of successors of job j
-        # self.in_degree      = [] # in_degree[j] == 0 if all predecessors of j are completed
+        self.njobs = 0           # int
+        self.jobs = []           # array of Job
+        self.nresources = 0      # int
+        self.resources = []      # resources[i] = capacity of resource i
 
     def __str__(self):
         return "njobs:\t\t{}\nresources:\t{}\n".format(self.njobs, self.resources)
