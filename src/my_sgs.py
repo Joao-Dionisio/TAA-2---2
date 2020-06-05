@@ -60,6 +60,16 @@ class Solution:
 
     def select(self):
         return self.eligible.pop()
+        # max_r = 99999
+        # max_j = self.prob.njobs - 1
+        # for j in self.eligible:
+        #     job = self.prob.jobs[j]
+        #     for r in job.resources:
+        #         if r < max_r:
+        #             max_r = r
+        #             max_j = j
+        # self.eligible.remove(max_j)
+        # return max_j
 
     def backward_pass(self):
         q = queue.SimpleQueue()
@@ -101,31 +111,31 @@ def sgs(prob):
     sol.schedule(id=0, start_time=0)
 
     for i in range(1, prob.njobs):
-        print(f"Stage {i}")
+        # print(f"Stage {i}")
 
         # Calculate eligible jobs
         sol.calc_eligible()
-        print(f"D_g = {sol.eligible}")
+        # print(f"D_g = {sol.eligible}")
 
         # Get the finish times of eligible jobs
         finish_times = [sol.finish_time[j] for j in sol.scheduled]
-        print(f"F_g = {finish_times} ")
+        # print(f"F_g = {finish_times} ")
 
         # Calculate remaining resource capacities
         remaining = {}
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
-            print(f"~R({t}) = {remaining[t]}")
+            # print(f"~R({t}) = {remaining[t]}")
 
         # Select one job
         j = sol.select()
         job = sol.prob.jobs[j]
-        print(f"j = {j}")
+        # print(f"j = {j}")
 
         # Calculate EF
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
         LF = sol.latest_finish[j]
-        print(f"EF_j = {EF}; LF_j = {LF}")
+        # print(f"EF_j = {EF}; LF_j = {LF}")
 
         # Calculate all times with resource feasibility    
         possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
@@ -135,23 +145,26 @@ def sgs(prob):
             if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                 feasible_times.append(t)
 
-        print(f"Possible times = {possible_times}")
-        print(f"Feasible times = {feasible_times}")
+        # print(f"Possible times = {possible_times}")
+        # print(f"Feasible times = {feasible_times}")
 
         start = min(feasible_times)
 
         # Add job to solution
         sol.schedule(start, j)
-        print(f"Scheduled {j} at {start}")
-        print("---------------------------------")
+        # print(f"Scheduled {j} at {start}")
+        # print(sol.finish_time)
+        # print("---------------------------------")
 
     return sol
     
 if __name__ == "__main__":
-    file = "data/j30/j301_1.sm"
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    prob = read_file(file)
+    try:
+        filename = sys.argv[1]
+    except IndexError:
+        filename = "data/j30/j301_1.sm"
+    
+    prob = read_file(filename)
     sol  = sgs(prob)
 
     print(sol.finish_time)

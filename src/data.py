@@ -29,22 +29,26 @@ class Problem:
         return "njobs:\t\t{}\nresources:\t{}\n".format(self.njobs, self.resources)
 
 
-def read_file(file):
+def read_file(filename):
+    try:
+        f = open(filename, 'r')
+    except IOError:
+        print("file", filename, "could not be read")
+        exit(-1)
+
     prob = Problem()
+    lines = f.readlines()
+    f.close()
 
-    with open(file, 'r') as f:
-        lines = f.readlines()
+    prob.njobs = int(lines[5].split(":")[1])
+    prob.nresources = int(lines[8].split(":")[1].split()[0])
 
-        prob.njobs      = int(lines[5].split(":")[1])
-        prob.nresources = int(lines[8].split(":")[1].split()[0])
+    rel_end_line = read_relations(prob, lines, 18)
+    stats_end_line = read_job_stats(prob, lines, rel_end_line + 5)
 
-        rel_end_line   = read_relations(prob, lines, 18)
-        stats_end_line = read_job_stats(prob, lines, rel_end_line + 5)
+    l = lines[stats_end_line + 4].split()
+    prob.resources = [int(r) for r in l]
 
-        l = lines[stats_end_line + 4].split()
-        prob.resources = [int(r) for r in l]
-
-        f.close()
 
     calc_predecessors(prob)
 
