@@ -33,22 +33,23 @@ def start_complete_search(file, n_levels):
     for i in completeSearch:
         possible_solutions.append(get_solution(i))
     print([max(i.finish_time) for i in possible_solutions])
+    min = float('inf')
+    for i in possible_solutions:
+        if max(i.finish_time) < min:
+            min = max(i.finish_time)
+    print(min)
 
 def complete_search(parent_solution, recursion_level, n_levels):
-    #print(parent_solution.eligible)
     parent_solution.calc_eligible()
-    #print(parent_solution.eligible)
     if recursion_level < n_levels:
         while len(parent_solution.eligible) > 0:
-            temp_sol = copy(parent_solution)
+            temp_sol = deepcopy(parent_solution)
             finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
             remaining = {}
             for t in finish_times:
                 remaining[t] = temp_sol.calc_remaining(t)
-            print(parent_solution.eligible)
-            j = temp_sol.select() #asdjnasdjnas
-            print(parent_solution.eligible)
-            #parent_solution.select()
+            j = temp_sol.select() 
+            parent_solution.select()
             '''if recursion_level != n_levels -1 :
                 print(l-1)
                 print(temp_sol.eligible)
@@ -112,7 +113,7 @@ if __name__ == "__main__":
     file = "data/j30/j301_1.sm"
     if len(sys.argv) > 1:
         file = sys.argv[1]
-    sol  = start_complete_search(file, 1)
+    sol  = start_complete_search(file, 7)
 
 
 '''x = 'j301_'
