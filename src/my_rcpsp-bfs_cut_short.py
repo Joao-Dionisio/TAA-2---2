@@ -15,45 +15,37 @@ from my_sgs import *
 import gc
 
 
-class solutionTree:
-    def __init__(self):
-        self.admissible_solutions = []
-
-
-def start_complete_search(file, n_levels):
-    prob = read_file(file)
-    global completeSearch
-    completeSearch = []
+def start_complete_search(prob, n_levels):
+    #prob = read_file(file)
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
     complete_search(sol, 0, n_levels)
     possible_solutions = []
-    print(len(completeSearch))
+    #print(len(completeSearch))
     for i in completeSearch:
         possible_solutions.append(get_solution(i))
-    print([max(i.finish_time) for i in possible_solutions])
+    #print([i.finish_time for i in possible_solutions])
     min = float('inf')
     for i in possible_solutions:
         if max(i.finish_time) < min:
             min = max(i.finish_time)
-    print(min)
+    #print(min)
+    return min
 
 def complete_search(parent_solution, recursion_level, n_levels):
     parent_solution.calc_eligible()
     if recursion_level < n_levels:
-        while len(parent_solution.eligible) > 0:
+        l = len(parent_solution.eligible)
+        #while len(parent_solution.eligible) > 0:
+        for z in range(l):
             temp_sol = deepcopy(parent_solution)
             finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
             remaining = {}
             for t in finish_times:
                 remaining[t] = temp_sol.calc_remaining(t)
-            j = temp_sol.select() 
-            parent_solution.select()
-            '''if recursion_level != n_levels -1 :
-                print(l-1)
-                print(temp_sol.eligible)
-            j = temp_sol.choose_job(temp_sol, l-1)'''
+            j = temp_sol.select(z) 
+    
             job = temp_sol.prob.jobs[j]
             EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
             LF = temp_sol.latest_finish[j]
@@ -83,7 +75,7 @@ def get_solution(sol):
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
         
-        j = sol.select()
+        j = sol.select(0)
         job = sol.prob.jobs[j]
 
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
@@ -109,11 +101,26 @@ def get_solution(sol):
 #sol.best_F = run('j3048_7.sm')
 #print(start_complete_search('j3048_7.sm'))
 
+'''
 if __name__ == "__main__":
     file = "data/j30/j301_1.sm"
     if len(sys.argv) > 1:
         file = sys.argv[1]
-    sol  = start_complete_search(file, 7)
+    sol  = start_complete_search(file, 1)'''
+
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        global completeSearch
+        completeSearch = []
+        file = "data/j30/j30" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_complete_search(prob,6)
+        print("j30" + str(i) + "_1.sm done!")
+
+        results.append(sol)
+    print(results)
+    print(sum(results))
 
 
 '''x = 'j301_'
