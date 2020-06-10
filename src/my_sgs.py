@@ -58,18 +58,36 @@ class Solution:
                 active.add(j)
         return active
 
-    def select(self):
-        return self.eligible.pop()
-        # max_r = 99999
-        # max_j = self.prob.njobs - 1
-        # for j in self.eligible:
-        #     job = self.prob.jobs[j]
-        #     for r in job.resources:
-        #         if r < max_r:
-        #             max_r = r
-        #             max_j = j
-        # self.eligible.remove(max_j)
-        # return max_j
+    def select(self, index):
+        
+        '''this = list(self.eligible)
+        chosen_activity = this[0]
+        for i in self.eligible:
+            if self.prob.jobs[i].duration < self.prob.jobs[chosen_activity].duration:
+                chosen_activity = i
+        self.eligible.remove(chosen_activity)
+        return chosen_activity'''
+         
+        '''this = list(self.eligible)
+        chosen_activity = this[0]
+        for i in self.eligible:
+            if sum(self.prob.jobs[i].resources) > sum(self.prob.jobs[chosen_activity].resources):
+                chosen_activity = i
+        self.eligible.remove(chosen_activity)
+        return chosen_activity'''
+        x = list(self.eligible)
+        y = x[index]
+        self.eligible.remove(y)
+        return y
+        #return self.eligible.pop()
+
+    # Adding this to make my life easier
+    def choose_job(self, sol, job):
+        temp = list(self.eligible)
+        #print(temp)
+        #print(job)
+        self.eligible.remove(temp[job])
+        return temp[job]
 
     def backward_pass(self):
         q = queue.SimpleQueue()
@@ -111,31 +129,31 @@ def sgs(prob):
     sol.schedule(id=0, start_time=0)
 
     for i in range(1, prob.njobs):
-        # print(f"Stage {i}")
-
+        print(f"Stage {i}")
+        
         # Calculate eligible jobs
         sol.calc_eligible()
-        # print(f"D_g = {sol.eligible}")
+        print(f"D_g = {sol.eligible}")
 
         # Get the finish times of eligible jobs
         finish_times = [sol.finish_time[j] for j in sol.scheduled]
-        # print(f"F_g = {finish_times} ")
+        print(f"F_g = {finish_times} ")
 
         # Calculate remaining resource capacities
         remaining = {}
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
-            # print(f"~R({t}) = {remaining[t]}")
+            print(f"~R({t}) = {remaining[t]}")
 
         # Select one job
-        j = sol.select()
+        j = sol.select(0)
         job = sol.prob.jobs[j]
-        # print(f"j = {j}")
+        print(f"j = {j}")
 
         # Calculate EF
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
         LF = sol.latest_finish[j]
-        # print(f"EF_j = {EF}; LF_j = {LF}")
+        print(f"EF_j = {EF}; LF_j = {LF}")
 
         # Calculate all times with resource feasibility    
         possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
@@ -145,19 +163,43 @@ def sgs(prob):
             if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                 feasible_times.append(t)
 
-        # print(f"Possible times = {possible_times}")
-        # print(f"Feasible times = {feasible_times}")
+        print(f"Possible times = {possible_times}")
+        print(f"Feasible times = {feasible_times}")
 
         start = min(feasible_times)
 
         # Add job to solution
         sol.schedule(start, j)
-        # print(f"Scheduled {j} at {start}")
-        # print(sol.finish_time)
-        # print("---------------------------------")
+        print(f"Scheduled {j} at {start}")
+        print("---------------------------------")
 
     return sol
-    
+'''
+if __name__ == "__main__":
+    results = []
+    for i in range(1,3):
+        for j in range(1, 11):
+            file = "data/j30/j30" + str(i*20) + "_" + str(j) + ".sm"
+            prob = read_file(file)
+            sol  = sgs(prob)
+
+            results.append(sol.finish_time[-1])
+    print(results)
+    print(sum(results))
+'''
+
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        file = "data/j30/j30" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = sgs(prob)
+
+        results.append(sol.finish_time[-1])
+    print(results)
+    print(sum(results))
+
+'''
 if __name__ == "__main__":
     try:
         filename = sys.argv[1]
@@ -168,3 +210,4 @@ if __name__ == "__main__":
     sol  = sgs(prob)
 
     print(sol.finish_time)
+'''

@@ -1,23 +1,15 @@
 '''
- Here we implemented beam search. Like complete search, but we only pursuit those solutions
+ Here we implemented beam search. Rather than complete search, we only pursuit those solutions
  whose fitness is at least as good as the minimum one. We set the number of solutions we 
  pursuit to n_solutions and we keep looking at other possible solutions. If they are more
- promissing, then those are the ones that we'll pursue. 
+ promissing, then those are the ones that we'll pursue, and we stop pursuing the least 
+ promissing.
  '''
 
-'''
-Com o beam search não estou a ver como o fazer.
-Aquilo que estava a tentar era ter um número n_solutions de possíveis soluções parciais
-a cada instante, e em cada iteração, se houver uma solução parcial que resulte
-numa maior fitness, então substitui a solução que tem menor fitness. Não estou a conseguir
-fazer com que isto aconteça até a solução parcial se tornar numa solução completa.
-
-A fitness de uma solução é dada como o inverso do tempo final que obtemos quando forçamos
-uma solução parcial a dar uma solução completa, através do sgs.
-'''
 from copy import copy
 from my_sgs import *
 import gc
+
 
 class completeSearchSolution(Solution):
     
@@ -27,12 +19,12 @@ class completeSearchSolution(Solution):
         solution_fitness = max(get_solution(temp_sol).finish_time)
         self.solution_fitness = 1/solution_fitness
 
+
 class candidateSolutions:
 
     def __init__(self):
         self.candidate_solutions = []
         
-
     def calculate_worst_solution(self):
         worst_child = self.candidate_solutions[0]
         worst_index = 0
@@ -47,6 +39,7 @@ class candidateSolutions:
         self.candidate_solutions[self.worst_index] = new_child
         self.calculate_worst_solution() 
 
+
 def start_beam_search(file, n_solutions):
     prob = read_file(file)
     sol = completeSearchSolution(prob)
@@ -55,11 +48,17 @@ def start_beam_search(file, n_solutions):
     sol.calc_solution_fitness()
     beam_search(sol, n_solutions)
     
+    for i in range(len(beamSearch.candidate_solutions)):
+        if beamSearch.candidate_solutions[i].finish_time[-1] == 0:
+            beamSearch.candidate_solutions[i] = get_solution(beamSearch.candidate_solutions[i])
+
     print([i.finish_time for i in beamSearch.candidate_solutions])
     min = float('inf')
     for i in beamSearch.candidate_solutions:
-        if max(i.finish_time) < min:
-            min = max(i.finish_time)
+        #if max(i.finish_time) < min:
+        if i.finish_time[-1] < min:
+            min = i.finish_time[-1]
+            #min = max(i.finish_time)
     return min
 
 
@@ -69,7 +68,6 @@ def beam_search(parent_solution, n_solutions):
     improved_this_round = [0] * n_solutions
     
     l = len(parent_solution.eligible)
-    
 
     best_temp_sol = None
 
@@ -103,7 +101,7 @@ def beam_search(parent_solution, n_solutions):
             beam_search(temp_sol, n_solutions)
         else:
             # Maybe store the solution fitness?
-            if temp_sol.solution_fitness > beamSearch.worst_child.solution_fitness:
+            if temp_sol.solution_fitness >= beamSearch.worst_child.solution_fitness:
                 improved_this_round[beamSearch.worst_index] = 1
                 beamSearch.replace(temp_sol)
             else:
@@ -118,6 +116,8 @@ def beam_search(parent_solution, n_solutions):
             new_index = beamSearch.candidate_solutions.index(parent_solution) 
             beamSearch.candidate_solutions[new_index]= best_temp_sol # If no improvement is found, just continue search using the best solution found
             improved_this_round[new_index] = 1
+        else:
+            return # If we didn't find an improvement, and there are no eligible solutions, that means we're done
         
     for index in range(len(improved_this_round)):
         if improved_this_round[index] == 1:
@@ -148,16 +148,13 @@ def get_solution(sol):
                 feasible_times.append(t)
         start = min(feasible_times)
         sol.schedule(start, j)
+    sol.finish_time[-1] = max(sol.finish_time)
     return sol
 
-'''
-if __name__ == "__main__":
-    file = "data/j30/j301_1.sm"
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    start_beam_search(file, 15)
-'''
 
+
+import time
+start = time.time()
 if __name__ == "__main__":
     results = []
     for i in range(1, 49):
@@ -165,13 +162,23 @@ if __name__ == "__main__":
         beamSearch = candidateSolutions()
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_beam_search(file,5)
+        sol  = start_beam_search(file,6)
         print("j30" + str(i) + "_1.sm done!")
 
         results.append(sol)
     print(results)
     print(sum(results))
+    print("test completed in %f seconds!" % (time.time()-start))
 
+
+# Some solutions haven't been fully scheduled!
+'''
+global beamSearch
+beamSearch = candidateSolutions()
+file = "data/j30/j302_1.sm"
+prob = read_file(file)
+sol = start_beam_search(file, 20)
+'''
 
 '''x = 'j301_'
 for i in range(1, 11):

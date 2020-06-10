@@ -16,7 +16,6 @@ import gc
 
 
 def start_complete_search(prob, n_levels):
-    #prob = read_file(file)
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
@@ -24,20 +23,34 @@ def start_complete_search(prob, n_levels):
     possible_solutions = []
     #print(len(completeSearch))
     for i in completeSearch:
-        possible_solutions.append(get_solution(i))
+        possible_solutions.append(get_solution(i)) # Force a solution based on the previous partial solutions.
     #print([i.finish_time for i in possible_solutions])
     min = float('inf')
     for i in possible_solutions:
         if max(i.finish_time) < min:
             min = max(i.finish_time)
-    #print(min)
     return min
 
+
 def complete_search(parent_solution, recursion_level, n_levels):
+    '''
+    Runs a complete search on the solution tree to the RCPSP problem. Performs a BFS on all possible solutions until a certain level
+    (n_levels). The levels represent the number of activities scheduled, so if n_levels = 5, we will find all possible ways of scheduling
+    5 activities, starting from activity 0. When we reach n_levels, we go down the solution tree until we find a complete solution to our 
+    problem, using the sgs algorithm.
+
+    Parameters:
+
+    parent_solution: The partial solution from whom we'll pursue all possible paths, at a given level.
+    recursion_level: The number of scheduled activities of the parent solution.
+    n_levels:        The number of levels we want to to fully explore.
+    '''
+
     parent_solution.calc_eligible()
     if recursion_level < n_levels:
         l = len(parent_solution.eligible)
-        #while len(parent_solution.eligible) > 0:
+        
+        # For every schedulable activity of the parent solution, we create a diverging path
         for z in range(l):
             temp_sol = deepcopy(parent_solution)
             finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
@@ -60,12 +73,17 @@ def complete_search(parent_solution, recursion_level, n_levels):
             start = min(feasible_times)
             temp_sol.schedule(start, j)
             complete_search(temp_sol, recursion_level+1, n_levels)
+
+    # If we reached the number of explored paths, we store the partial solution for later and we stop the search
     if recursion_level == n_levels:
         completeSearch.append(parent_solution)
         return
     
     
 def get_solution(sol):
+    '''
+    Runs the sgs algorithm, but on a project that already started being planned
+    '''
     for i in range(1, len(sol.unprocessed)):
         sol.calc_eligible()
 
@@ -89,25 +107,14 @@ def get_solution(sol):
                 feasible_times.append(t)
         start = min(feasible_times)
         sol.schedule(start, j)
+    sol.finish_time[-1] = max(sol.finish_time)
     return sol
         
 
 
 
-#import time
-
-#b = start_complete_search(a[0], a[1], 'j3048_7.sm')
-#sol = Solution()
-#sol.best_F = run('j3048_7.sm')
-#print(start_complete_search('j3048_7.sm'))
-
-'''
-if __name__ == "__main__":
-    file = "data/j30/j301_1.sm"
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    sol  = start_complete_search(file, 1)'''
-
+import time
+start = time.time()
 if __name__ == "__main__":
     results = []
     for i in range(1, 49):
@@ -121,6 +128,7 @@ if __name__ == "__main__":
         results.append(sol)
     print(results)
     print(sum(results))
+    print("test completed in %f seconds!" % (time.time()-start))
 
 
 '''x = 'j301_'
