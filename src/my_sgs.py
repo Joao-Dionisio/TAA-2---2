@@ -4,9 +4,6 @@ from copy import copy, deepcopy
 
 from data import *
 
-import cProfile
-import re
-
 class Solution:
     def __init__(self, prob):
         # self.prob = deepcopy(prob)
