@@ -9,159 +9,143 @@ you take the sgs solution
 and you adapt the algorithm. Instead of trying to decide which is the best solution,
 you instead try all of them. This will result in a really big tree, so we decided to
 do beam search.
-
-For every algo to bin packing, we also have an algo for this algorithm.
-The things we put in the bins are the tasks, and they have r + 1 dimensions,
-where r is the number of resources, plus 1 which corresponds to the duration.
-It's easier to explain with an example.
-Suppose task 1 demands [3,1,2] resources and takes 5 to complete.
-So we imagine task 1 as a 3x1x2x5 box that we need to pack.
-
-Doing this, we can imagine that we're packing items one next to another iff
-there's space left, and that only happens if the resource needed are smaller than
-
 '''
 from copy import copy
-from sgs import *
+from my_sgs import *
 import gc
 
 
-class Solution:
-    def __init__(self):
-        self.best_F = 33*[float('inf')]
-
-def start_complete_search(file):
-    a = read_file(file)
-    activities = a[0]
-    resources = a[1]
-    #sol = Solution()
-    #sol.best_F = run(file)
-    #print(sol.best_F)
-    S = (len(activities)+1)*[0]
-    S[0] = 1
-    S[1] = 1
-    return complete_search(activities, resources, S, (len(activities)+1)*[0], sol.best_F, 0)
-
-
-# Performs a DFS on all possible solutions
-def complete_search(activities, resources, S, F, best_F, recursion_level):
-    eligible_activities = calculate_eligible_activities_2(activities, resources, S)
-    l = len(eligible_activities)
-    for j in range(l):
-        i = eligible_activities[j]
-        precedent_finish_times = [F[h.id] for h in i.predecessors]
-        EF = max(precedent_finish_times) + i.duration
-        cur_time = min(calculate_possible_times_2(activities, i, resources, F, EF))
-        if cur_time + i.duration < best_F[-1]:
-            cur_F = copy(F)
-            cur_F[i.id] = cur_time + i.duration
-            cur_resources = copy(resources)
-            for k in cur_resources.available_resources:
-                if k > cur_time and k < cur_time + i.duration:
-                    for j in range(resources.number_of):
-                        cur_resources[k][j]-=i.required_resources[j]
-            cur_S = copy(S)
-            cur_S[i.id] = 1
-            #print(S)
-            if 0 in cur_S[2:]:
-                if recursion_level < 4:
-                    cur_F = complete_search(activities, cur_resources, cur_S, cur_F, sol.best_F, recursion_level+1)
-                else:
-                    #print(cur_F)
-                    cur_F = find_solution(activities, cur_resources, cur_S, cur_F)
-                    #print(cur_F)
-                    cur_S = (len(activities)+1)*[1]
-            if cur_F[-1] < sol.best_F[-1] and 0 not in cur_S:
-                #print('asd')
-                sol.best_F = cur_F
-        gc.collect()
-    return sol.best_F
+def start_complete_search(prob, n_levels):
+    sol = Solution(prob)
+    sol.backward_pass()
+    sol.schedule(id=0, start_time=0)
+    complete_search(sol, 0, n_levels)
+    possible_solutions = []
+    #print(len(completeSearch))
+    for i in completeSearch:
+        possible_solutions.append(get_solution(i)) # Force a solution based on the previous partial solutions.
+    #print([i.finish_time for i in possible_solutions])
+    min = float('inf')
+    for i in possible_solutions:
+        if max(i.finish_time) < min:
+            min = max(i.finish_time)
+    return min
 
 
-def find_solution(activities, cur_resources, S, cur_F):
-    while 0 in S[:-1]:
-        eligible_activities = calculate_eligible_activities_2(activities, cur_resources, S)
-        chosen_activity = eligible_activities[0]
-        chosen_resources = sum(chosen_activity.required_resources)
-        for j in eligible_activities:
-            if sum(j.required_resources) > chosen_resources:
-                chosen_activity = j
-        cur_activity = chosen_activity
-        precedent_finish_times = [cur_F[j.id] for j in cur_activity.predecessors]
-        EF = max(precedent_finish_times) + cur_activity.duration
-        #possible_times = min(calculate_possible_times_2(cur_activity, cur_resources, cur_F, EF))
-        cur_time = min(calculate_possible_times_2(activities, cur_activity, cur_resources, cur_F, EF))
-        cur_F[cur_activity.id] = cur_time + cur_activity.duration
-        S[cur_activity.id] = 1
-    cur_F[-1] = max(cur_F)
-    S[-1] = 1
-    return cur_F
+def complete_search(parent_solution, recursion_level, n_levels):
+    '''
+    Runs a complete search on the solution tree to the RCPSP problem. Performs a BFS on all possible solutions until a certain level
+    (n_levels). The levels represent the number of activities scheduled, so if n_levels = 5, we will find all possible ways of scheduling
+    5 activities, starting from activity 0. When we reach n_levels, we go down the solution tree until we find a complete solution to our 
+    problem, using the sgs algorithm.
+
+    Parameters:
+
+    parent_solution: The partial solution from whom we'll pursue all possible paths, at a given level.
+    recursion_level: The number of scheduled activities of the parent solution.
+    n_levels:        The number of levels we want to to fully explore.
+    '''
+
+    parent_solution.calc_eligible()
+    if recursion_level < n_levels:
+        l = len(parent_solution.eligible)
+        
+        # For every schedulable activity of the parent solution, we create a diverging path
+        for z in range(l):
+            temp_sol = deepcopy(parent_solution)
+            finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
+            remaining = {}
+            for t in finish_times:
+                remaining[t] = temp_sol.calc_remaining(t)
+            j = temp_sol.select(z) 
     
+            job = temp_sol.prob.jobs[j]
+            EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
+            LF = temp_sol.latest_finish[j]
 
-#WE ARE ASSUMING THAT, BESIDES ACTIVITY 0 (AND -1), THERE ARE NO ACTIVITIES WITH DURATION 0
-def calculate_eligible_activities_2(activities, resources, cur_S):
-    n_resources = resources.number_of
-    unscheduled_activities = [i for i in activities if cur_S[i.id] == 0] # The unscheduled activities are the ones that aren't in S. Activity 0 ends at 0, so it's discarded
-    # removing unscheduled activities whose precedents haven't been scheduled.
-    to_remove = []
-    for i in unscheduled_activities:
-        for j in i.predecessors:
-            if cur_S[j.id] == 0: 
-                to_remove.append(i)
-                break
-    unscheduled_activities = [i for i in unscheduled_activities if i not in to_remove]
-    eligible_activities = []
-    for cur_activity in unscheduled_activities:
-        for t in resources.available_resources:
-            if all(cur_activity.required_resources <= resources.available_resources[t] for i in range(resources.number_of)):
-                cur_activity.start = t # I am not sure about this
-                cur_activity.end = cur_activity.start + cur_activity.duration 
-                eligible_activities.append(cur_activity)
+            possible_times = [t for t in range(EF - job.duration, LF-job.duration) if t in finish_times]
+            feasible_times = []
+            for t in possible_times:
+                taus = [tau for tau in range(t, t+job.duration) if tau in finish_times]
+                if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
+                    feasible_times.append(t)
 
-    if eligible_activities == []:
-        chosen_activity = unscheduled_activities[0]
-        chosen_resources = sum(chosen_activity.required_resources) 
-        for i in unscheduled_activities:
-            if sum(i.required_resources) > chosen_resources:
-                chosen_activity = i
-        eligible_activities.append(chosen_activity) 
-    return eligible_activities
+            start = min(feasible_times)
+            temp_sol.schedule(start, j)
+            complete_search(temp_sol, recursion_level+1, n_levels)
 
-
-
-# We need to be careful with resources and activities
-def calculate_possible_times_2(activities, cur_activity, resources, F, EF):
-    j = cur_activity.id
-    LF = 1000 # delete this later, should be an argument
-    initial_times = [i for i in F if i >= EF - cur_activity.duration and i <= LF - cur_activity.duration] # This is just that big train in the paper
-
-    possible_times = []    
-    for t in initial_times:
-        if all(cur_activity.required_resources[i] <=  resources.available_resources[t][i] for i in range(resources.number_of)):
-            possible_times.append(t)
+    # If we reached the number of explored paths, we store the partial solution for later and we stop the search
+    if recursion_level == n_levels:
+        completeSearch.append(parent_solution)
+        return
     
-    if initial_times == []:
-        possible_times = [max(F)] 
-
-    if possible_times == []:
-        possible_times = [max(initial_times)]
     
-    return possible_times
+def get_solution(sol):
+    '''
+    Runs the sgs algorithm, but on a project that already started being planned
+    '''
+    for i in range(1, len(sol.unprocessed)):
+        sol.calc_eligible()
+
+        finish_times = [sol.finish_time[j] for j in sol.scheduled]
+
+        remaining = {}
+        for t in finish_times:
+            remaining[t] = sol.calc_remaining(t)
+        
+        j = sol.select(0)
+        job = sol.prob.jobs[j]
+
+        EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
+        LF = sol.latest_finish[j]
+
+        possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
+        feasible_times = []
+        for t in possible_times:
+            taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
+            if all([is_resource_feasible(job, remaining[tau])for tau in taus]):
+                feasible_times.append(t)
+        start = min(feasible_times)
+        sol.schedule(start, j)
+    sol.finish_time[-1] = max(sol.finish_time)
+    return sol
+        
+
 
 
 import time
+start = time.time()
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        global completeSearch
+        completeSearch = []
+        file = "data/j30/j30" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_complete_search(prob,0)
+        print("j30" + str(i) + "_1.sm done!")
 
-#b = start_complete_search(a[0], a[1], 'j3048_7.sm')
-sol = Solution()
-#sol.best_F = run('j3048_7.sm')
-print(start_complete_search('j3048_7.sm'))
+        results.append(sol)
+    print(results)
+    print(sum(results))
+    print("test completed in %f seconds!" % (time.time()-start))
 
-'''x = 'j301_'
-for i in range(1, 11):
-    start = time.time()
-    test = x + str(i) + '.sm'
-    sol.best_F = run(test)
-    print(sol.best_F)
-    print(start_complete_search(test))
-    print(time.time() - start)
+
+'''
+import time
+start = time.time()
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        global completeSearch
+        completeSearch = []
+        file = "data/j60/j60" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_complete_search(prob,1)
+        print("j60" + str(i) + "_1.sm done!")
+
+        results.append(sol)
+    print(results)
+    print(sum(results))
+    print("test completed in %f seconds!" % (time.time()-start))
 '''

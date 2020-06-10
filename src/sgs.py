@@ -1,317 +1,226 @@
-# We need to check what the input is
+import sys
+import queue
+from copy import copy, deepcopy
 
-class Resources:
-    def __init__(self):
-        self.number_of = -1
-        self.max_capacity = []
-        self.available_resources = {}
+from data import *
 
-   # We are doing the same thing multiple times. Instead of scheduled_activities, we should only pass the most recent activity to be scheduled
-    def calculate_resources(self, scheduled_activities):
-        activity_intersections = resource_dependencies(scheduled_activities) # {finish_time_1: [r_1(1),...,r_k(1)], ... , finish_time_n: [r_1(n),...,r_k(n)]}
-        for time in activity_intersections:
-            for j in activity_intersections[time]:
-                #if time in resources.available_resources:
-                #    resources.available_resources[time] = [resources.available_resources[time][r_k] - j.required_resources[r_k] for r_k in range(resources.number_of)]
-                
-                    self.available_resources[time] = [self.max_capacity[r_k] - j.required_resources[r_k] for r_k in range(self.number_of)]                    
-        return self.available_resources
+class Solution:
+    def __init__(self, prob):
+        # self.prob = deepcopy(prob)
+        self.prob = prob
 
+        self.finish_time     = [0] * prob.njobs
 
+        self.earliest_start  = [0] * prob.njobs
+        self.earliest_finish = [0] * prob.njobs
+        self.latest_start    = [0] * prob.njobs
+        self.latest_finish   = [0] * prob.njobs
 
-class Activity:
-    def __init__(self, information):
-        self.id = information[0]  
-        self.duration = information[1]
-        self.required_resources = information[2]
-        self.successors = [i for i in information[3]]
-        self.predecessors = []
-        self.scheduled = False
-        self.start = None
-        self.end = None #self.start + self.duration
+        # set of scheduled job ids
+        self.scheduled = set()
 
-    def calculate_precedents(self, activities):
-        # I'm gonna assume no one's an asshole and that you can only be a successor of an activity with a lower number than yours
-        predecessors = []
-        for i in range(len(self.successors)):
-            cur_predecessor = []
-            for j in range(i):
-                    if i in self.successors[j]:
-                        cur_predecessor.append(j)
-            predecessors.append(cur_predecessor)
-        self.predecessors = predecessors
+        # set of jobs that can be scheduledt
+        self.eligible = set()
+
+        # set of unprocessed jobs
+        self.unprocessed = list(range(0, prob.njobs))
+
+        self.active_jobs = [[] for i in range(256)]
 
 
+    def calc_eligible(self):
+        eligible = set()
+
+        for j in self.unprocessed:
+            job = self.prob.jobs[j]
+            if job.in_degree == 0:
+                eligible.add(j)
+
+        self.eligible |= eligible
+
+    def schedule(self, start_time, id):
+        job = self.prob.jobs[id]
+        end_time = start_time + job.duration
+
+        self.finish_time[id] = end_time
+        self.unprocessed.remove(id)
+        self.scheduled.add(id)
+
+        for j in job.successors:
+            self.prob.jobs[j].in_degree -= 1
+
+        for t in range(start_time, end_time):
+            self.active_jobs[t].append(id)
+
+
+    def calc_remaining(self, t):
+        # remaining = copy(self.prob.resources)
+        remaining = self.prob.resources
+        for j in self.active_jobs[t]:
+            remaining = [a - b for a, b in zip(remaining, self.prob.jobs[j].resources)]
+        # for j in self.active_jobs(t):
+        #     remaining = [a - b for a, b in zip(remaining, j.resources)]
+        return remaining
+
+    def active_jobs(self, t):
+        active = []
+        for j in self.prob.jobs:
+            if t < self.finish_time[j.id] and (self.finish_time[j.id] - j.duration) <= t:
+                active.append(j)
+        return active
+
+    def select(self, index):
         
-    
-
-
-
-def read_file(file):
-
-    # This is so much data wtf
-    # For now, let's deliver the data like
-    #[..., [activity i, duration, [resources], [sucecessors]], ....]
-    # So, for jobnr. 1 of j30 of the first dataset we have
-    # [[1, 0, [0,0,0,0], [2,3,4]], [2, 2, [1,2,4,0], [10,11,28]], ... ]
-
-    # file = 'j30.sm'
-    with open(file) as fp:
-        precedence_relations = []
-        requests_duration = []
-        for i, line in enumerate(fp):
-            #if i > 10:
-            #    print(line)
-            if i == 14:
-                a = line
-            elif i>17 and i < 50:
-                precedence_relations.append(line)
-            elif i == 89:
-                resource_capacity = line
-            elif i > 53 and i < 86:
-                requests_duration.append(line)
-            if i > 88:
-                break
-        
-
-
-
-    precedence_relations = [" ".join(i.split()) for i in precedence_relations]
-    precedents = []
-    for i in precedence_relations:
-        precedents.append([int(n) for n in i.split()])
-    for i in range(32):
-        precedents[i].pop(1)
-        precedents[i].pop(1)
-        if len(precedents[i]) > 1:
-            x = [precedents[i][1:]]
-            precedents[i] = [precedents[i][0]] + x
-        else:
-            precedents[i] = precedents[i] + [[]]
-
-
-    requests_duration = [" ".join(i.split()) for i in requests_duration]
-    resource_duration = []
-    for i in requests_duration:
-        resource_duration.append([int(n) for n in i.split()])
-    for i in range(32):
-        resource_duration[i].pop(1)
-        x = [resource_duration[i][2:]]
-        resource_duration[i] = [resource_duration[i][0]] + [resource_duration[i][1]] + x 
-        
-
-
-    final = [resource_duration[i] + [precedents[i][1]] for i in range(32)]
-
-    activities = []
-    for i in final:
-        activities.append(Activity(i))
-    calculate_precedents(activities)
-        
-    resource_capacity = [int(n) for n in resource_capacity.split()]
-    resources = Resources()
-    resources.max_capacity = resource_capacity # Reading the file
-    resources.number_of = len(resources.available_resources)
-    resources.available_resources = {0: resources.max_capacity}
-
-    return [activities, resources]
-
-
-
-
-
-        
-
-def sgs(activities, resources):
-    durations = [i.duration for i in activities]
-    S = [activities[0]] # First dummy activity
-    l = activities[-1].id
-    F = (l+1)*[0]
-    LF = calculate_latest_finish(activities)
-    D = []
-    activities[0].start = activities[0].end = 0 # dummy
-    for i in range(l):
-        
-        resources.calculate_resources(S)
-        D = calculate_eligible_activities(activities, resources)
-
-        chosen_activity = D[0] 
-        chosen_resources = sum(chosen_activity.required_resources)
-        for j in D:
-            if sum(j.required_resources) > chosen_resources: # We choose the activity that takes the most resources
-                chosen_activity = j
-        cur_activity = chosen_activity
-        
-        '''earliest_start = float('inf')
-        for cur_activity in D:
-            cur_earliest_start = float('inf')
-            for h in resources.available_resources:
-                if all(cur_activity.required_resources[z] <= resources.available_resources[h][z] for z in range(resources.number_of)):
-                            cur_earliest_start = h
-                            break
-            if cur_earliest_start < earliest_start:
-                earliest_start = cur_earliest_start
-                chosen_activity = cur_activity'''
-     
-    
-        precedent_finish_times = [F[j.id] for j in cur_activity.predecessors] # YOU ARE HERE RIGHT NOW
-        if precedent_finish_times == []:
-            precedent_finish_times = [0]
-        EF = max(precedent_finish_times) + cur_activity.duration # We only need EF_{j} for iteration j
-        print(cur_activity.id)
-        possible_times = calculate_possible_times(cur_activity, resources, F, EF)
-        cur_activity.start = min(possible_times)
-        cur_activity.end = cur_activity.start + cur_activity.duration
-        
-        
-        F[cur_activity.id] = cur_activity.end
-        cur_activity.scheduled = True
-        if chosen_activity.id != 0:
-            S.append(chosen_activity)
-        if i < l-1:
-            D.remove(chosen_activity)
-                
-    F[-1] = max(F) # The last activity will be a precedent of activity n
-    print(F)
-    return [activities, resources]
-    return F[-1]
-
-
-
-
-
-def calculate_latest_finish(activities):
-    
-    return
-
-                
-def calculate_possible_times(cur_activity, resources, F, EF):
-    j = cur_activity.id
-    LF = 1000 # delete this later, should be an argument
-    initial_times = [i for i in F if i >= EF - cur_activity.duration and i <= LF - cur_activity.duration] # This is just that big train in the paper
-
-    possible_times = []    
-    for t in initial_times:
-        if all(cur_activity.required_resources[i] <=  resources.available_resources[t][i] for i in range(resources.number_of)):
-            possible_times.append(t)
-
-    #if cur_activity.id == 3:
-    #    print(initial_times)
-    
-    if initial_times == []:
-        possible_times = [max(F)] 
-
-    if possible_times == []:
-        possible_times = [max(initial_times)]
-    
-    
-
-    return possible_times
-
-
-
-def calculate_eligible_activities(activities, resources):
-    n_resources = resources.number_of
-    unscheduled_activities = [i for i in activities if i.scheduled == False]
-    # removing unscheduled activities whose precedents haven't been scheduled.
-    to_remove = []
-    for i in unscheduled_activities:
-        for j in i.predecessors:
-            if j.scheduled == False:
-                to_remove.append(i)
-                break
-    unscheduled_activities = [i for i in unscheduled_activities if i not in to_remove]
-    eligible_activities = []
-    for cur_activity in unscheduled_activities:
-        for t in resources.available_resources:
-            if all(cur_activity.required_resources <= resources.available_resources[t] for i in range(resources.number_of)):
-                cur_activity.start = t # I am not sure about this
-                cur_activity.end = cur_activity.start + cur_activity.duration 
-                eligible_activities.append(cur_activity)
-
-    if eligible_activities == []:
-        chosen_activity = unscheduled_activities[0]
-        chosen_resources = sum(chosen_activity.required_resources)
-        for i in unscheduled_activities:
-            if sum(i.required_resources) > chosen_resources:
+        '''this = list(self.eligible)
+        chosen_activity = this[0]
+        for i in self.eligible:
+            if self.prob.jobs[i].duration < self.prob.jobs[chosen_activity].duration:
                 chosen_activity = i
-        eligible_activities.append(chosen_activity)
-    #print([i.id for i in unscheduled_activities])
-    return eligible_activities
+        self.eligible.remove(chosen_activity)
+        return chosen_activity'''
+         
+        '''this = list(self.eligible)
+        chosen_activity = this[0]
+        for i in self.eligible:
+            if sum(self.prob.jobs[i].resources) > sum(self.prob.jobs[chosen_activity].resources):
+                chosen_activity = i
+        self.eligible.remove(chosen_activity)
+        return chosen_activity'''
+        x = list(self.eligible)
+        y = x[index]
+        self.eligible.remove(y)
+        return y
+        #return self.eligible.pop()
+
+    # Adding this to make my life easier
+    def choose_job(self, sol, job):
+        temp = list(self.eligible)
+        #print(temp)
+        #print(job)
+        self.eligible.remove(temp[job])
+        return temp[job]
+
+    def backward_pass(self):
+        q = queue.SimpleQueue()
+        # jobs = deepcopy(self.prob.jobs)
+        jobs = self.prob.jobs
+
+        # Total sum of job durations works as an upperbound
+        upper_bound = sum([job.duration for job in self.prob.jobs])
+
+        self.latest_finish = [upper_bound] * self.prob.njobs
+        self.latest_start = [-1] * self.prob.njobs
+
+        q.put(jobs[-1])
+        self.latest_start[-1] = upper_bound
+
+        while q.empty() == False:
+            job = q.get()
+            t = self.latest_finish[job.id] - job.duration
+            for j in job.predecessors:
+                pred = jobs[j]
+                if self.latest_finish[j] >= t:
+                    self.latest_finish[j] = t
+                    self.latest_start[j] = t - pred.duration
+                pred.nsuccessors -= 1
+                if pred.nsuccessors == 0:
+                    q.put(pred)
 
 
+def is_resource_feasible(job, remaining):
+    return all([r <= R for (r, R) in zip(job.resources, remaining)])
 
 
-def resource_dependencies(activities):
-    dic = {}
-    #activities = [[i.start, i.start + i.duration] for i in activities]
-    for i in activities:
-        if i.start + i.duration not in dic:
-            dic[i.start + i.duration] = []
-    for i in activities:
-        for j in dic:
-            if i.start <= j and i.start+i.duration >= j:
-                dic[j].append(i)
-    return dic
-
-
-
-
-def calculate_precedents(activities):
-    predecessors = []
-    ids = [i.id for i in activities]
-    for i in activities:
-        for j in i.successors:
-            activities[ids.index(j)].predecessors.append(i)
-
-
-def run(file):
-    a = read_file(file)
-    return sgs(a[0], a[1])
-
-def test_correctness(activities, resources):
-    for i in resources.available_resources:
-        if not all(resources.available_resources[i][k] >= 0 for k in range(resources.number_of)):
-            print('Resource Capacity exceeded')
-    for i in activities:
-        if not all(i.start >= j.end for j in i.predecessors):
-            print('Activity started before precedent')
-    print('Everything seems to be okay')
+def sgs(prob):
+    sol = Solution(prob)
+    # Calculate LF for this instance
+    sol.backward_pass()
     
-'''
+    # Insert dummy start job
+    sol.schedule(id=0, start_time=0)
 
-a = Activity([0,0,[0],[1,2]])
-b = Activity([1,3,[2],[3]])
-c = Activity([2,4,[3],[4]])
-d = Activity([3,2,[4],[5]])
-e = Activity([4,2,[4],[6]])
-f = Activity([5,1,[3],[7]])
-g = Activity([6,4,[2],[7]])
-h = Activity([7,0,[0],[]])
-activities = [a,b,c,d,e,f,g,h]
-resources = Resources()
-resources.number_of = 1
-resources.max_capacity = [4]
-resources.available_resources = {0: [4]}
-calculate_precedents(activities)
-sgs(activities, resources)
-'''
+    for i in range(1, prob.njobs):
+        # print(f"Stage {i}")
+        
+        # Calculate eligible jobs
+        sol.calc_eligible()
+        # print(f"D_g = {sol.eligible}")
 
-'''
-a = Activity([0,0,[0,0],[1,2]])
-b = Activity([1,3,[2,1],[3]])
-c = Activity([2,4,[2,1],[3,4]])
-d = Activity([3,6,[2,1],[5]])
-e = Activity([4,2,[2,1],[5,6]])
-f = Activity([5,1,[3,0],[7]])
-g = Activity([6,4,[3,1],[7]])
-h = Activity([7,0,[0,0],[]])
-activities = [a,b,c,d,e,f,g,h]
-resources = Resources()
-resources.number_of = 2
-resources.max_capacity = [4,2]
-resources.available_resources = {0: [4,2]} 
-calculate_precedents(activities)
-sgs(activities, resources) 
+        # Get the finish times of eligible jobs
+        finish_times = [sol.finish_time[j] for j in sol.scheduled]
+        # print(f"F_g = {finish_times} ")
 
-'''
+        # Calculate remaining resource capacities
+        remaining = {}
+        for t in finish_times:
+            remaining[t] = sol.calc_remaining(t)
+            # print(f"~R({t}) = {remaining[t]}")
+
+        # Select one job
+        j = sol.select(0)
+        job = sol.prob.jobs[j]
+        # print(f"j = {j}")
+
+        # Calculate EF
+        EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
+        LF = sol.latest_finish[j]
+        # print(f"EF_j = {EF}; LF_j = {LF}")
+
+        # Calculate all times with resource feasibility    
+        possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
+        # possible_times = [t for t in range(EF - job.duration, LF - job.duration + 1) if t in finish_times]
+        feasible_times = []
+        for t in possible_times:
+            # taus = [tau for tau in finish_times if tau < t + job.duration and tau >= t]
+            taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
+            if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
+                feasible_times.append(t)
+
+        # print(f"Possible times = {possible_times}")
+        # print(f"Feasible   times = {feasible_times}")
+
+        start = min(feasible_times)
+
+        # Add job to solution
+        sol.schedule(start, j)
+        # print(f"Scheduled {j} at {start}")
+        # print("---------------------------------")
+
+    return sol
+    
+def benchmark():
+    prefix30 = "data/j30/j30"
+    prefix60 = "data/j60/j60"
+    suffix = "_1.sm"
+
+    end_times = []
+    
+    for i in range(1,48):
+        filename = f"{prefix30}{i}{suffix}"
+        global prob
+        prob  = read_file(filename)
+        sol = sgs(prob)
+        end_times.append(sol.finish_time[-1])
+
+    print(f"j30: {end_times}")
+
+    end_times = []
+
+    for i in range(1,48):
+        filename = f"{prefix60}{i}{suffix}"
+        prob = read_file(filename)
+        sol = sgs(prob)
+        end_times.append(sol.finish_time[-1])
+    
+    print(f"j60: {end_times}")
+
+
+if __name__ == "__main__":
+    try:
+        filename = sys.argv[1]
+        prob = read_file(filename)
+        sol  = sgs(prob)
+        print(sol.finish_time)
+    except IndexError:
+        benchmark()
+    
