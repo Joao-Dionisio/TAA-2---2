@@ -143,31 +143,31 @@ def sgs(prob):
     sol.schedule(id=0, start_time=0)
 
     for i in range(1, prob.njobs):
-        print(f"Stage {i}")
+        # print(f"Stage {i}")
         
         # Calculate eligible jobs
         sol.calc_eligible()
-        print(f"D_g = {sol.eligible}")
+        # print(f"D_g = {sol.eligible}")
 
         # Get the finish times of eligible jobs
         finish_times = [sol.finish_time[j] for j in sol.scheduled]
-        print(f"F_g = {finish_times} ")
+        # print(f"F_g = {finish_times} ")
 
         # Calculate remaining resource capacities
         remaining = {}
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
-            print(f"~R({t}) = {remaining[t]}")
+            # print(f"~R({t}) = {remaining[t]}")
 
         # Select one job
         j = sol.select(0)
         job = sol.prob.jobs[j]
-        print(f"j = {j}")
+        # print(f"j = {j}")
 
         # Calculate EF
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
         LF = sol.latest_finish[j]
-        print(f"EF_j = {EF}; LF_j = {LF}")
+        # print(f"EF_j = {EF}; LF_j = {LF}")
 
         # Calculate all times with resource feasibility    
         possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
@@ -186,8 +186,8 @@ def sgs(prob):
 
         # Add job to solution
         sol.schedule(start, j)
-        print(f"Scheduled {j} at {start}")
-        print("---------------------------------")
+        # print(f"Scheduled {j} at {start}")
+        # print("---------------------------------")
 
     return sol
     
@@ -221,10 +221,10 @@ def benchmark():
 if __name__ == "__main__":
     try:
         filename = sys.argv[1]
-    except IndexError:
-        filename = "data/j30/j301_1.sm"
-    
-    prob = read_file(filename)
-    sol  = sgs(prob)
+        prob = read_file(filename)
+        sol  = sgs(prob)
 
-    print(sol.finish_time)
+        print(sol.finish_time)
+    except IndexError:
+        benchmark()
+    
