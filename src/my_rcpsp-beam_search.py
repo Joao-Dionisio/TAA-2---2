@@ -1,4 +1,11 @@
 '''
+ Here we implemented beam search. Like complete search, but we only pursuit those solutions
+ whose fitness is at least as good as the minimum one. We set the number of solutions we 
+ pursuit to n_solutions and we keep looking at other possible solutions. If they are more
+ promissing, then those are the ones that we'll pursue. 
+ '''
+
+'''
 Com o beam search não estou a ver como o fazer.
 Aquilo que estava a tentar era ter um número n_solutions de possíveis soluções parciais
 a cada instante, e em cada iteração, se houver uma solução parcial que resulte
@@ -20,38 +27,57 @@ class completeSearchSolution(Solution):
         solution_fitness = max(get_solution(temp_sol).finish_time)
         self.solution_fitness = 1/solution_fitness
 
+class candidateSolutions:
+
+    def __init__(self):
+        self.candidate_solutions = []
+        
+
+    def calculate_worst_solution(self):
+        worst_child = self.candidate_solutions[0]
+        worst_index = 0
+        for index, child in enumerate(self.candidate_solutions):
+            if child.solution_fitness < worst_child.solution_fitness:
+                worst_child = child
+                worst_index = index
+        self.worst_child = worst_child
+        self.worst_index =  worst_index
+
+    def replace(self, new_child):
+        self.candidate_solutions[self.worst_index] = new_child
+        self.calculate_worst_solution() 
 
 def start_beam_search(file, n_solutions):
     prob = read_file(file)
     global beamSearch
-    beamSearch = []
+    beamSearch = candidateSolutions()
     sol = completeSearchSolution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
     sol.calc_solution_fitness()
     beam_search(sol, n_solutions)
-    print(len(beamSearch))
     
-    print([i.finish_time for i in beamSearch])
+    print([i.finish_time for i in beamSearch.candidate_solutions])
     min = float('inf')
-    for i in beamSearch:
+    for i in beamSearch.candidate_solutions:
         if max(i.finish_time) < min:
             min = max(i.finish_time)
     print(min)
 
 def beam_search(parent_solution, n_solutions):
     parent_solution.calc_eligible()
+    improved_this_round = [0] * n_solutions
     
-    improvement = 0
-    
-    while len(parent_solution.eligible) > 0:
+    l = len(parent_solution.eligible)
+    print(parent_solution.eligible)
+
+    for z in range(l):
         temp_sol = deepcopy(parent_solution)
         finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
         remaining = {}
         for t in finish_times:
             remaining[t] = temp_sol.calc_remaining(t)
-        j = temp_sol.select() 
-        parent_solution.select()
+        j = temp_sol.select(z) 
 
         job = temp_sol.prob.jobs[j]
         EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
@@ -66,31 +92,31 @@ def beam_search(parent_solution, n_solutions):
 
         start = min(feasible_times)
         temp_sol.schedule(start, j)
-        #print(len(temp_sol.eligible))
+        
         temp_sol.calc_solution_fitness()
-        if len(beamSearch) < n_solutions:
-            improvement = 1
-            beamSearch.append(temp_sol)
+        if len(beamSearch.candidate_solutions) < n_solutions:
+            beamSearch.candidate_solutions.append(temp_sol)
+            beamSearch.calculate_worst_solution() # Just to initialize worst_child and worst_index variables
+            improved_this_round[len(beamSearch.candidate_solutions)-1] = 1
             beam_search(temp_sol, n_solutions)
         else:
-            worst_child = beamSearch[0]
-            worst_index = 0
-            for index, child in enumerate(beamSearch):
-                if child.solution_fitness < worst_child.solution_fitness:
-                    worst_child = child
-                    worst_index = index
-            if temp_sol.solution_fitness > worst_child.solution_fitness:
-                worst_child = temp_sol
-                improvement = 1
-    if improvement == 0:
+            # Maybe store the solution fitness?
+            if temp_sol.solution_fitness > beamSearch.worst_child.solution_fitness:
+                improved_this_round[beamSearch.worst_index] = 1
+                beamSearch.replace(temp_sol)
+                
+                
+    if 1 not in improved_this_round:
         if len(parent_solution.eligible) > 0:
-            worst_child = temp_sol
+            new_index = beamSearch.candidate_solutions.index(parent_solution) 
+            beamSearch.candidate_solutions[new_index]= temp_sol # If no improvement is made, just continue search using the last solution
+            improved_this_round[new_index] = 1
         else:
             return
-    if len(beamSearch) == n_solutions:
-        beamSearch[worst_index] = worst_child
-        beam_search(worst_child, n_solutions)
-            
+    for index in range(len(improved_this_round)):
+        if improved_this_round[index] == 1:
+            beam_search(beamSearch.candidate_solutions[index], n_solutions) 
+
     
 def get_solution(sol):
     for i in range(1, len(sol.unprocessed)):
@@ -102,7 +128,7 @@ def get_solution(sol):
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
         
-        j = sol.select()
+        j = sol.select(0)
         job = sol.prob.jobs[j]
 
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
@@ -118,18 +144,12 @@ def get_solution(sol):
         sol.schedule(start, j)
     return sol
 
-#import time
-
-#b = start_complete_search(a[0], a[1], 'j3048_7.sm')
-#sol = Solution()
-#sol.best_F = run('j3048_7.sm')
-#print(start_complete_search('j3048_7.sm'))
 
 if __name__ == "__main__":
     file = "data/j30/j301_1.sm"
     if len(sys.argv) > 1:
         file = sys.argv[1]
-    sol  = start_beam_search(file, 2)
+    start_beam_search(file, 1)
 
 
 '''x = 'j301_'
