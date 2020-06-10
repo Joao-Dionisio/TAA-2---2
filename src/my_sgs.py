@@ -4,9 +4,13 @@ from copy import copy, deepcopy
 
 from data import *
 
+import cProfile
+import re
+
 class Solution:
     def __init__(self, prob):
-        self.prob = deepcopy(prob)
+        # self.prob = deepcopy(prob)
+        self.prob = prob
 
         self.finish_time     = [0] * prob.njobs
 
@@ -24,48 +28,58 @@ class Solution:
         # set of unprocessed jobs
         self.unprocessed = list(range(0, prob.njobs))
 
+        self.active_jobs = [[] for i in range(256)]
+
 
     def calc_eligible(self):
         eligible = set()
 
         for j in self.unprocessed:
             job = self.prob.jobs[j]
-            if job.is_ready():
+            if job.in_degree == 0:
                 eligible.add(j)
 
         self.eligible |= eligible
 
     def schedule(self, start_time, id):
         job = self.prob.jobs[id]
+        end_time = start_time + job.duration
 
-        self.finish_time[id] = start_time + job.duration
+        self.finish_time[id] = end_time
         self.unprocessed.remove(id)
         self.scheduled.add(id)
 
         for j in job.successors:
             self.prob.jobs[j].in_degree -= 1
 
+        for t in range(start_time, end_time):
+            self.active_jobs[t].append(id)
+
+
     def calc_remaining(self, t):
-        remaining = copy(self.prob.resources)
-        for j in self.active_jobs(t):
-            remaining = [a - b for a, b in zip(remaining, j.resources)]
+        # remaining = copy(self.prob.resources)
+        remaining = self.prob.resources
+        for j in self.active_jobs[t]:
+            remaining = [a - b for a, b in zip(remaining, self.prob.jobs[j].resources)]
+        # for j in self.active_jobs(t):
+        #     remaining = [a - b for a, b in zip(remaining, j.resources)]
         return remaining
 
     def active_jobs(self, t):
-        active = set()
+        active = []
         for j in self.prob.jobs:
-            if t < self.finish_time[j.id] and self.finish_time[j.id] - j.duration <= t:
-                active.add(j)
+            if t < self.finish_time[j.id] and (self.finish_time[j.id] - j.duration) <= t:
+                active.append(j)
         return active
 
     def select(self):
         return self.eligible.pop()
-        # max_r = 99999
+        # max_r = -1
         # max_j = self.prob.njobs - 1
         # for j in self.eligible:
         #     job = self.prob.jobs[j]
         #     for r in job.resources:
-        #         if r < max_r:
+        #         if r > max_r:
         #             max_r = r
         #             max_j = j
         # self.eligible.remove(max_j)
@@ -73,7 +87,8 @@ class Solution:
 
     def backward_pass(self):
         q = queue.SimpleQueue()
-        jobs = deepcopy(self.prob.jobs)
+        # jobs = deepcopy(self.prob.jobs)
+        jobs = self.prob.jobs
 
         # Total sum of job durations works as an upperbound
         upper_bound = sum([job.duration for job in self.prob.jobs])
@@ -103,7 +118,6 @@ def is_resource_feasible(job, remaining):
 
 def sgs(prob):
     sol = Solution(prob)
-
     # Calculate LF for this instance
     sol.backward_pass()
     
@@ -138,15 +152,17 @@ def sgs(prob):
         # print(f"EF_j = {EF}; LF_j = {LF}")
 
         # Calculate all times with resource feasibility    
-        possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
+        possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
+        # possible_times = [t for t in range(EF - job.duration, LF - job.duration + 1) if t in finish_times]
         feasible_times = []
         for t in possible_times:
+            # taus = [tau for tau in finish_times if tau < t + job.duration and tau >= t]
             taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
             if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                 feasible_times.append(t)
 
         # print(f"Possible times = {possible_times}")
-        # print(f"Feasible times = {feasible_times}")
+        # print(f"Feasible   times = {feasible_times}")
 
         start = min(feasible_times)
 
@@ -158,13 +174,41 @@ def sgs(prob):
 
     return sol
     
-if __name__ == "__main__":
-    try:
-        filename = sys.argv[1]
-    except IndexError:
-        filename = "data/j30/j301_1.sm"
-    
-    prob = read_file(filename)
-    sol  = sgs(prob)
+def benchmark():
+    prefix30 = "data/j30/j30"
+    prefix60 = "data/j60/j60"
+    suffix = "_1.sm"
 
-    print(sol.finish_time)
+    end_times = []
+    
+    for i in range(1,48):
+        filename = f"{prefix30}{i}{suffix}"
+        global prob
+        prob  = read_file(filename)
+        sol = sgs(prob)
+        end_times.append(sol.finish_time[-1])
+
+    print(f"j30: {end_times}")
+
+    end_times = []
+
+    for i in range(1,48):
+        filename = f"{prefix60}{i}{suffix}"
+        prob = read_file(filename)
+        sol = sgs(prob)
+        end_times.append(sol.finish_time[-1])
+    
+    print(f"j60: {end_times}")
+
+
+if __name__ == "__main__":
+    cProfile.run("benchmark()")
+    # try:
+    #     filename = sys.argv[1]
+    # except IndexError:
+    #     filename = "data/j30/j301_1.sm"
+    
+    # prob = read_file(filename)
+    # sol  = sgs(prob)
+
+    # print(sol.finish_time)
