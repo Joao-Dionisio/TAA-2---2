@@ -4,9 +4,6 @@ from copy import copy, deepcopy
 
 from data import *
 
-import cProfile
-import re
-
 class Solution:
     def __init__(self, prob):
         # self.prob = deepcopy(prob)
@@ -223,7 +220,6 @@ if __name__ == "__main__":
         filename = sys.argv[1]
         prob = read_file(filename)
         sol  = sgs(prob)
-
         print(sol.finish_time)
     except IndexError:
         benchmark()
