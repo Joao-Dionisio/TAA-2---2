@@ -122,7 +122,7 @@ if __name__ == "__main__":
         completeSearch = []
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_complete_search(prob,6)
+        sol  = start_complete_search(prob,0)
         print("j30" + str(i) + "_1.sm done!")
 
         results.append(sol)
@@ -131,12 +131,21 @@ if __name__ == "__main__":
     print("test completed in %f seconds!" % (time.time()-start))
 
 
-'''x = 'j301_'
-for i in range(1, 11):
-    start = time.time()
-    test = x + str(i) + '.sm'
-    sol.best_F = run(test)
-    print(sol.best_F)
-    print(start_complete_search(test))
-    print(time.time() - start)
+'''
+import time
+start = time.time()
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        global completeSearch
+        completeSearch = []
+        file = "data/j60/j60" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_complete_search(prob,1)
+        print("j60" + str(i) + "_1.sm done!")
+
+        results.append(sol)
+    print(results)
+    print(sum(results))
+    print("test completed in %f seconds!" % (time.time()-start))
 '''
