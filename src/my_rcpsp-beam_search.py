@@ -49,8 +49,6 @@ class candidateSolutions:
 
 def start_beam_search(file, n_solutions):
     prob = read_file(file)
-    global beamSearch
-    beamSearch = candidateSolutions()
     sol = completeSearchSolution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
@@ -62,14 +60,18 @@ def start_beam_search(file, n_solutions):
     for i in beamSearch.candidate_solutions:
         if max(i.finish_time) < min:
             min = max(i.finish_time)
-    print(min)
+    return min
+
+
 
 def beam_search(parent_solution, n_solutions):
     parent_solution.calc_eligible()
     improved_this_round = [0] * n_solutions
     
     l = len(parent_solution.eligible)
-    print(parent_solution.eligible)
+    
+
+    best_temp_sol = None
 
     for z in range(l):
         temp_sol = deepcopy(parent_solution)
@@ -104,15 +106,19 @@ def beam_search(parent_solution, n_solutions):
             if temp_sol.solution_fitness > beamSearch.worst_child.solution_fitness:
                 improved_this_round[beamSearch.worst_index] = 1
                 beamSearch.replace(temp_sol)
+            else:
+                if best_temp_sol == None:
+                    best_temp_sol = temp_sol
+                elif temp_sol.solution_fitness > best_temp_sol.solution_fitness:
+                    best_temp_sol = temp_sol
                 
                 
     if 1 not in improved_this_round:
         if len(parent_solution.eligible) > 0:
             new_index = beamSearch.candidate_solutions.index(parent_solution) 
-            beamSearch.candidate_solutions[new_index]= temp_sol # If no improvement is made, just continue search using the last solution
+            beamSearch.candidate_solutions[new_index]= best_temp_sol # If no improvement is found, just continue search using the best solution found
             improved_this_round[new_index] = 1
-        else:
-            return
+        
     for index in range(len(improved_this_round)):
         if improved_this_round[index] == 1:
             beam_search(beamSearch.candidate_solutions[index], n_solutions) 
@@ -144,12 +150,27 @@ def get_solution(sol):
         sol.schedule(start, j)
     return sol
 
-
+'''
 if __name__ == "__main__":
     file = "data/j30/j301_1.sm"
     if len(sys.argv) > 1:
         file = sys.argv[1]
-    start_beam_search(file, 1)
+    start_beam_search(file, 15)
+'''
+
+if __name__ == "__main__":
+    results = []
+    for i in range(1, 49):
+        global beamSearch
+        beamSearch = candidateSolutions()
+        file = "data/j30/j30" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_beam_search(file,5)
+        print("j30" + str(i) + "_1.sm done!")
+
+        results.append(sol)
+    print(results)
+    print(sum(results))
 
 
 '''x = 'j301_'
