@@ -6,8 +6,7 @@ from data import *
 
 class Solution:
     def __init__(self, prob):
-        # self.prob = deepcopy(prob)
-        self.prob = prob
+        self.prob = deepcopy(prob)
 
         self.finish_time     = [0] * prob.njobs
 
@@ -58,45 +57,13 @@ class Solution:
         remaining = self.prob.resources
         for j in self.active_jobs[t]:
             remaining = [a - b for a, b in zip(remaining, self.prob.jobs[j].resources)]
-        # for j in self.active_jobs(t):
-        #     remaining = [a - b for a, b in zip(remaining, j.resources)]
         return remaining
 
-    def active_jobs(self, t):
-        active = []
-        for j in self.prob.jobs:
-            if t < self.finish_time[j.id] and (self.finish_time[j.id] - j.duration) <= t:
-                active.append(j)
-        return active
+    def select(self):
+        return self.eligible.pop()
 
-    def select(self, index):
-        
-        '''this = list(self.eligible)
-        chosen_activity = this[0]
-        for i in self.eligible:
-            if self.prob.jobs[i].duration < self.prob.jobs[chosen_activity].duration:
-                chosen_activity = i
-        self.eligible.remove(chosen_activity)
-        return chosen_activity'''
-         
-        '''this = list(self.eligible)
-        chosen_activity = this[0]
-        for i in self.eligible:
-            if sum(self.prob.jobs[i].resources) > sum(self.prob.jobs[chosen_activity].resources):
-                chosen_activity = i
-        self.eligible.remove(chosen_activity)
-        return chosen_activity'''
-        x = list(self.eligible)
-        y = x[index]
-        self.eligible.remove(y)
-        return y
-        #return self.eligible.pop()
-
-    # Adding this to make my life easier
     def choose_job(self, sol, job):
         temp = list(self.eligible)
-        #print(temp)
-        #print(job)
         self.eligible.remove(temp[job])
         return temp[job]
 
@@ -157,7 +124,7 @@ def sgs(prob):
             # print(f"~R({t}) = {remaining[t]}")
 
         # Select one job
-        j = sol.select(0)
+        j = sol.select()
         job = sol.prob.jobs[j]
         # print(f"j = {j}")
 
@@ -197,7 +164,6 @@ def benchmark():
     
     for i in range(1,48):
         filename = f"{prefix30}{i}{suffix}"
-        global prob
         prob  = read_file(filename)
         sol = sgs(prob)
         end_times.append(sol.finish_time[-1])

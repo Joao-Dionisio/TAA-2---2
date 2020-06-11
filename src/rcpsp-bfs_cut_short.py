@@ -1,19 +1,6 @@
-'''
-
-So, the idea is:
-
-
-you take the sgs solution 
-
-
-and you adapt the algorithm. Instead of trying to decide which is the best solution,
-you instead try all of them. This will result in a really big tree, so we decided to
-do beam search.
-'''
 from copy import copy
-from my_sgs import *
-import gc
-
+from sgs import *
+import time
 
 def start_complete_search(prob, n_levels):
     sol = Solution(prob)
@@ -21,14 +8,15 @@ def start_complete_search(prob, n_levels):
     sol.schedule(id=0, start_time=0)
     complete_search(sol, 0, n_levels)
     possible_solutions = []
-    #print(len(completeSearch))
+
     for i in completeSearch:
-        possible_solutions.append(get_solution(i)) # Force a solution based on the previous partial solutions.
-    #print([i.finish_time for i in possible_solutions])
+        possible_solutions.append(get_solution(i))
+
     min = float('inf')
     for i in possible_solutions:
         if max(i.finish_time) < min:
             min = max(i.finish_time)
+
     return min
 
 
@@ -48,18 +36,17 @@ def complete_search(parent_solution, recursion_level, n_levels):
 
     parent_solution.calc_eligible()
     if recursion_level < n_levels:
-        l = len(parent_solution.eligible)
+        finish_times = [parent_solution.finish_time[j] for j in parent_solution.scheduled]
         
-        # For every schedulable activity of the parent solution, we create a diverging path
-        for z in range(l):
+        remaining = {}
+        for t in finish_times:
+            remaining[t] = parent_solution.calc_remaining(t)
+
+        for j in parent_solution.eligible:
             temp_sol = deepcopy(parent_solution)
-            finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
-            remaining = {}
-            for t in finish_times:
-                remaining[t] = temp_sol.calc_remaining(t)
-            j = temp_sol.select(z) 
-    
+            temp_sol.eligible.remove(j)
             job = temp_sol.prob.jobs[j]
+
             EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
             LF = temp_sol.latest_finish[j]
 
@@ -93,7 +80,7 @@ def get_solution(sol):
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
         
-        j = sol.select(0)
+        j = sol.select()
         job = sol.prob.jobs[j]
 
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
@@ -107,45 +94,42 @@ def get_solution(sol):
                 feasible_times.append(t)
         start = min(feasible_times)
         sol.schedule(start, j)
+        
     sol.finish_time[-1] = max(sol.finish_time)
     return sol
-        
 
 
-
-import time
-start = time.time()
 if __name__ == "__main__":
+    start = time.time()
     results = []
+
+    global completeSearch
     for i in range(1, 49):
-        global completeSearch
         completeSearch = []
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_complete_search(prob,0)
+        sol  = start_complete_search(prob,5)
         print("j30" + str(i) + "_1.sm done!")
-
         results.append(sol)
-    print(results)
-    print(sum(results))
-    print("test completed in %f seconds!" % (time.time()-start))
 
-
-'''
-import time
-start = time.time()
-if __name__ == "__main__":
-    results = []
     for i in range(1, 49):
-        global completeSearch
         completeSearch = []
         file = "data/j60/j60" + str(i) + "_1.sm"
         prob = read_file(file)
         sol  = start_complete_search(prob,1)
-        print("j60" + str(i) + "_1.sm done!")
-
+        print("j30" + str(i) + "_1.sm done!")
         results.append(sol)
+
     print(results)
-    print(sum(results))
-    print("test completed in %f seconds!" % (time.time()-start))
-'''
+    print(f"test completed in {(time.time()-start)} seconds!")
+
+
+if __name__ == "__main__":
+    try:
+        filename = sys.argv[1]
+        prob = read_file(filename)
+        sol  = start_complete_search(prob)
+        print(sol.finish_time)
+    except IndexError:
+        benchmark()
+    

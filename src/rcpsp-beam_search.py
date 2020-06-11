@@ -7,7 +7,7 @@
  '''
 
 from copy import copy
-from my_sgs import *
+from sgs import *
 import gc
 
 
@@ -16,9 +16,9 @@ class completeSearchSolution(Solution):
     # Calculates the fitness of a solution, bassed on the time provided by sgs
     def calc_solution_fitness(self):
         temp_sol = deepcopy(self)
-        solution_fitness = max(get_solution(temp_sol).finish_time)
+        # solution_fitness = max(get_solution(temp_sol).finish_time)
+        solution_fitness = get_solution(temp_sol).finish_time[-1]
         self.solution_fitness = 1/solution_fitness
-
 
 class candidateSolutions:
 
@@ -71,13 +71,16 @@ def beam_search(parent_solution, n_solutions):
 
     best_temp_sol = None
 
-    for z in range(l):
+    for j in parent_solution.eligible:
         temp_sol = deepcopy(parent_solution)
+        
         finish_times = [temp_sol.finish_time[j] for j in temp_sol.scheduled]
         remaining = {}
+        
         for t in finish_times:
             remaining[t] = temp_sol.calc_remaining(t)
-        j = temp_sol.select(z) 
+
+        temp_sol.eligible.remove(j)
 
         job = temp_sol.prob.jobs[j]
         EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
@@ -134,7 +137,7 @@ def get_solution(sol):
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
         
-        j = sol.select(0)
+        j = sol.select()
         job = sol.prob.jobs[j]
 
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
