@@ -6,6 +6,7 @@ def start_complete_search(prob, n_levels):
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
+
     complete_search(sol, 0, n_levels)
     possible_solutions = []
 
@@ -58,6 +59,8 @@ def complete_search(parent_solution, recursion_level, n_levels):
                     feasible_times.append(t)
 
             start = min(feasible_times)
+            if start + job.duration > upper_bound:
+               pass 
             temp_sol.schedule(start, j)
             complete_search(temp_sol, recursion_level+1, n_levels)
 
@@ -100,35 +103,45 @@ def get_solution(sol):
 
 
 def benchmark():
-    start = time.time()
-    results = []
+    start30 = time.time()
+    results30 = []
 
     global completeSearch
+    global upper_bound
     for i in range(1, 49):
         completeSearch = []
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_complete_search(prob,5)
+        upper_bound = max(sgs(prob).finish_time)
+        sol  = start_complete_search(prob,2)
         print("j30" + str(i) + "_1.sm done!")
-        results.append(sol)
-
+        results30.append(sol)
+    finish30 = time.time()
+    results60 = []
+    start60 = time.time()
     for i in range(1, 49):
         completeSearch = []
         file = "data/j60/j60" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_complete_search(prob,1)
+        sol  = start_complete_search(prob,2)
         print("j30" + str(i) + "_1.sm done!")
-        results.append(sol)
+        results60.append(sol)
+    finish60 = time.time()
 
-    print(results)
-    print(f"test completed in {(time.time()-start)} seconds!")
+    print(f"J30 test completed in {(finish30 - start30)} seconds!")
+    print(results30)
+    print("The sum was ", sum(results30))
+    print()
+    print(f"J60 test completed in {(finish60 - start60)} seconds!")
+    print(results60)
+    print("The sum was ", sum(results60))
 
 
 if __name__ == "__main__":
     try:
         filename = sys.argv[1]
         prob = read_file(filename)
-        sol  = start_complete_search(prob)
+        start_complete_search(prob, 2)
         print(sol.finish_time)
     except IndexError:
         benchmark()
