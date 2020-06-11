@@ -8,11 +8,10 @@
 
 from copy import copy
 from sgs import *
-import gc
+import time
 
 
 class completeSearchSolution(Solution):
-    
     # Calculates the fitness of a solution, bassed on the time provided by sgs
     def calc_solution_fitness(self):
         temp_sol = deepcopy(self)
@@ -20,8 +19,8 @@ class completeSearchSolution(Solution):
         solution_fitness = get_solution(temp_sol).finish_time[-1]
         self.solution_fitness = 1/solution_fitness
 
-class candidateSolutions:
 
+class candidateSolutions:
     def __init__(self):
         self.candidate_solutions = []
         
@@ -52,7 +51,6 @@ def start_beam_search(file, n_solutions):
         if beamSearch.candidate_solutions[i].finish_time[-1] == 0:
             beamSearch.candidate_solutions[i] = get_solution(beamSearch.candidate_solutions[i])
 
-    print([i.finish_time for i in beamSearch.candidate_solutions])
     min = float('inf')
     for i in beamSearch.candidate_solutions:
         #if max(i.finish_time) < min:
@@ -60,7 +58,6 @@ def start_beam_search(file, n_solutions):
             min = i.finish_time[-1]
             #min = max(i.finish_time)
     return min
-
 
 
 def beam_search(parent_solution, n_solutions):
@@ -155,40 +152,45 @@ def get_solution(sol):
     return sol
 
 
+def benchmark():
+    global beamSearch
+    start = time.time()
 
-import time
-start = time.time()
-if __name__ == "__main__":
     results = []
+    
     for i in range(1, 49):
-        global beamSearch
         beamSearch = candidateSolutions()
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_beam_search(file,1)
+        sol  = start_beam_search(file, 1)
         print("j30" + str(i) + "_1.sm done!")
 
         results.append(sol)
+
     print(results)
-    print(sum(results))
-    print("test completed in %f seconds!" % (time.time()-start))
 
-
-'''
-import time
-start = time.time()
-if __name__ == "__main__":
     results = []
+
     for i in range(1, 49):
-        global beamSearch
         beamSearch = candidateSolutions()
         file = "data/j60/j60" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_beam_search(file,1)
+        sol  = start_beam_search(file, 1)
         print("j60" + str(i) + "_1.sm done!")
 
         results.append(sol)
+
     print(results)
-    print(sum(results))
     print("test completed in %f seconds!" % (time.time()-start))
-'''
+
+if __name__ == "__main__":
+    try:
+        global beamSearch
+        filename = sys.argv[1]
+        prob = read_file(filename)
+        beamSearch = candidateSolutions()
+        sol = start_beam_search(file, 1)
+        print(sol)
+    except IndexError:
+        benchmark()
+    
