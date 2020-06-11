@@ -162,7 +162,7 @@ def benchmark():
 
     end_times = []
     
-    for i in range(1,48):
+    for i in range(1,49):
         filename = f"{prefix30}{i}{suffix}"
         prob  = read_file(filename)
         sol = sgs(prob)
@@ -172,7 +172,7 @@ def benchmark():
 
     end_times = []
 
-    for i in range(1,48):
+    for i in range(1,49):
         filename = f"{prefix60}{i}{suffix}"
         prob = read_file(filename)
         sol = sgs(prob)

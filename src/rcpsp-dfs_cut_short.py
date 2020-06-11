@@ -99,7 +99,7 @@ def get_solution(sol):
     return sol
 
 
-if __name__ == "__main__":
+def benchmark():
     start = time.time()
     results = []
 
