@@ -11,7 +11,7 @@ def entry(prob, cmax, max_depth):
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
     best = [cmax]
-    return sgs_search(sol, 1, [cmax], max_depth)
+    return sgs_search(sol, 0, [cmax], max_depth)
 
 
 def sgs_search(sol, index, best, max_depth):
