@@ -60,7 +60,39 @@ class Solution:
         return remaining
 
     def select(self):
+        # Id
         return self.eligible.pop()
+
+        # Duration
+        # this = list(self.eligible)
+        # chosen_activity = this[0]
+        # for i in self.eligible:
+        #     if self.prob.jobs[i].duration > self.prob.jobs[chosen_activity].duration:
+        #         chosen_activity = i
+        # self.eligible.remove(chosen_activity)
+        # return chosen_activity
+
+        #Total Resources
+        # this = list(self.eligible)
+        # chosen_activity = this[0]
+        # for i in self.eligible:
+        #     if sum(self.prob.jobs[i].resources) < sum(self.prob.jobs[chosen_activity].resources):
+        #         chosen_activity = i
+        # self.eligible.remove(chosen_activity)
+        # return chosen_activity
+
+        # Single Resource
+        # min = -1
+        # chosen = list(self.eligible)[-1]
+        # for j in self.eligible:
+        #     job = self.prob.jobs[j]
+        #     for k in job.resources:
+        #         if k > min:
+        #             min = k
+        #             chosen = j
+        # self.eligible.remove(chosen)
+        # return chosen
+
 
     def choose_job(self, sol, job):
         temp = list(self.eligible)
@@ -169,7 +201,8 @@ def benchmark():
         end_times.append(sol.finish_time[-1])
 
     print(f"j30: {end_times}")
-
+    s = sum(end_times)
+    print(s)
     end_times = []
 
     for i in range(1,49):
@@ -179,6 +212,7 @@ def benchmark():
         end_times.append(sol.finish_time[-1])
     
     print(f"j60: {end_times}")
+    print(s + sum(end_times))
 
 
 if __name__ == "__main__":
@@ -187,6 +221,7 @@ if __name__ == "__main__":
         prob = read_file(filename)
         sol  = sgs(prob)
         print(sol.finish_time)
+        print(sum(sol.finish_time))
     except IndexError:
         benchmark()
     
