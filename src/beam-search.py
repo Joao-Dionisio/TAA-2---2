@@ -152,7 +152,7 @@ def get_solution(sol):
     return sol
 
 
-def benchmark():
+def benchmark(n_solutions):
     global beamSearch
     start = time.time()
 
@@ -162,12 +162,12 @@ def benchmark():
         beamSearch = candidateSolutions()
         file = "data/j30/j30" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_beam_search(file, 1)
+        sol  = start_beam_search(file, n_solutions)
         print("j30" + str(i) + "_1.sm done!")
-
         results.append(sol)
 
     print(results)
+    print("test completed in %f seconds!" % (time.time()-start))
 
     results = []
 
@@ -175,22 +175,40 @@ def benchmark():
         beamSearch = candidateSolutions()
         file = "data/j60/j60" + str(i) + "_1.sm"
         prob = read_file(file)
-        sol  = start_beam_search(file, 1)
+        sol  = start_beam_search(file, n_solutions)
         print("j60" + str(i) + "_1.sm done!")
-
         results.append(sol)
 
     print(results)
     print("test completed in %f seconds!" % (time.time()-start))
 
 if __name__ == "__main__":
-    try:
+    global beamSearch
+    if len(sys.argv) == 1:
+        benchmark(1)
+    
+    elif len(sys.argv) == 2:
         global beamSearch
         filename = sys.argv[1]
         prob = read_file(filename)
         beamSearch = candidateSolutions()
         sol = start_beam_search(file, 1)
         print(sol)
-    except IndexError:
-        benchmark()
-    
+
+    elif len(sys.argv) == 3:
+        filename = sys.argv[1]
+        if filename == "benchmark":
+            benchmark(int(sys.argv[2]))
+        else:
+            prob = read_file(filename)
+            beamSearch = candidateSolutions()
+            sol = start_beam_search(file, int(sys.argv[2]))
+            print(sol)
+        
+    else:
+        print(
+"""
+Usage: python beam-search.py [filename] [beam-width]
+Default filename: benchmark
+Default width: 5
+""")

@@ -28,13 +28,27 @@ Output:
 
 `j60: [80, 70, 62, 84, 98, 70, 78, 64, 108, 91, 71, 59, 134, 69, 84, 64, 101, 97, 63, 60, 118, 73, 83, 65, 148, 94, 96, 92, 141, 84, 65, 69, 114, 78, 90, 61, 120, 89, 81, 86, 169, 87, 122, 84, 121, 91, 75]`
 
-Simply run the program you're interested in, paying attention to what's at the bottom of the file, the test cases. There are two blocks of test cases, one refering to the J30 dataset and the other refering to the J60 dataset [3]. As was agreed in our class, we tested our code only for first instance of every sub-block, which is to say, we only tested the code for one dataset every 10 datasets. By default, the J30 test is uncommented and the J60 test is commented.
-
 ## Complete search
 
-For the BFS, before running, you should note the integer parameter in start_complete_search. It refers to the number of levels the bfs will explore before forcing a solution. Be advised that for bigger values (>5) it starts to take a really long time. We initialized it to 0.
+Files: dfs.py, dfs2.py, beam-search.py
 
-For the beam search, you need to pay attention to the same thing. The function start_beam_search has an integer parameter, related to the maximum number of partial solutions that will be investigated. For the J30 it takes quite a bit less that te BFS, but it still takes a while for bigger values (>10). Also, be aware that, for values > 5, the solutions actually start worsening, as we discussed in the report.
+All files take arguments as in:
+
+`> python prog.py [filename] [int-parameter]`
+
+Giving no arguments runs the default benchmark for both j30 and j60 datasets.
+
+The first dfs is slower and consumes gigabytes of memory but produces better results. The second dfs is much faster and wastes little memory but produces worse results. Maximum depth can be passed as an argument when running the program. For dfs.py set the depth to 6 or lower, for dfs2.py set it to 7 or lower.
+
+For the beam-search, the beam width can be passed as a paremeter.
+
+Example: `> python src/beam-search.py benchmark 2`
+
+Output:
+
+`j30: [49, 41, 72, 49, 57, 64, 55, 44, 85, 46, 55, 47, 66, 51, 46, 51, 66, 53, 40, 57, 95, 43, 63, 53, 99, 63, 43, 69, 91, 51, 43, 61, 65, 69, 57, 66, 82, 49, 56, 51, 96, 60, 58, 50, 94, 62, 64, 63]`
+
+`j60: [80, 69, 60, 84, 89, 64, 77, 64, 99, 85, 76, 59, 125, 65, 84, 64, 97, 85, 62, 60, 114, 69, 75, 65, 127, 83, 96, 92, 119, 78, 65, 69, 110, 72, 90, 61, 110, 78, 80, 86, 139, 86, 112, 84, 112, 87, 75, 71]`
 
 ## References
 

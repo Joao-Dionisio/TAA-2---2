@@ -1,56 +1,77 @@
-import sys
-import queue
-from copy import copy, deepcopy
-
-from data import *
+from copy import copy
 from sgs import *
+import time
 
-def entry(prob, cmax, max_depth):
+def start_complete_search(prob, n_levels):
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
-    best = [cmax]
-    return sgs_search(sol, 1, [cmax], max_depth)
+
+    complete_search(sol, 0, n_levels)
+    possible_solutions = []
+
+    for i in completeSearch:
+        possible_solutions.append(get_solution(i))
+
+    min = float('inf')
+    for i in possible_solutions:
+        if max(i.finish_time) < min:
+            min = max(i.finish_time)
+
+    return min
 
 
-def sgs_search(sol, index, best, max_depth):
-    if index < max_depth:
-        sol.calc_eligible()
+def complete_search(parent_solution, recursion_level, n_levels):
+    '''
+    Runs a complete search on the solution tree to the RCPSP problem. Performs a BFS on all possible solutions until a certain level
+    (n_levels). The levels represent the number of activities scheduled, so if n_levels = 5, we will find all possible ways of scheduling
+    5 activities, starting from activity 0. When we reach n_levels, we go down the solution tree until we find a complete solution to our 
+    problem, using the sgs algorithm.
 
-        finish_times = [sol.finish_time[j] for j in sol.scheduled]
+    Parameters:
 
+    parent_solution: The partial solution from whom we'll pursue all possible paths, at a given level.
+    recursion_level: The number of scheduled activities of the parent solution.
+    n_levels:        The number of levels we want to to fully explore.
+    '''
+
+    parent_solution.calc_eligible()
+    if recursion_level < n_levels:
+        finish_times = [parent_solution.finish_time[j] for j in parent_solution.scheduled]
+        
         remaining = {}
         for t in finish_times:
-            remaining[t] = sol.calc_remaining(t)
-    
-        for j in sol.eligible:
-            new_sol = deepcopy(sol)
-            new_sol.eligible.remove(j)
-            job = new_sol.prob.jobs[j]
+            remaining[t] = parent_solution.calc_remaining(t)
 
-            EF = max([new_sol.finish_time[h] for h in job.predecessors]) + job.duration
-            LF = new_sol.latest_finish[j]
+        for j in parent_solution.eligible:
+            temp_sol = deepcopy(parent_solution)
+            temp_sol.eligible.remove(j)
+            job = temp_sol.prob.jobs[j]
 
-            possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
+            EF = max([temp_sol.finish_time[h] for h in job.predecessors]) + job.duration
+            LF = temp_sol.latest_finish[j]
+
+            possible_times = [t for t in range(EF - job.duration, LF-job.duration) if t in finish_times]
             feasible_times = []
             for t in possible_times:
-                taus = [tau for tau in finish_times if tau < t + job.duration and tau >= t]
+                taus = [tau for tau in range(t, t+job.duration) if tau in finish_times]
                 if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                     feasible_times.append(t)
 
             start = min(feasible_times)
-            new_sol.schedule(start, j)  
-            times = sgs_search(new_sol, index + 1, best, max_depth)
+            temp_sol.schedule(start, j)
+            complete_search(temp_sol, recursion_level+1, n_levels)
 
-            if times[-1] < best[-1]:
-                best = times
-
-        return best
-
-    else: return sgs_(sol)
-
-def sgs_(sol):
-
+    # If we reached the number of explored paths, we store the partial solution for later and we stop the search
+    if recursion_level == n_levels:
+        completeSearch.append(parent_solution)
+        return
+    
+    
+def get_solution(sol):
+    '''
+    Runs the sgs algorithm, but on a project that already started being planned
+    '''
     for i in range(len(sol.unprocessed)):
         sol.calc_eligible()
 
@@ -59,84 +80,83 @@ def sgs_(sol):
         remaining = {}
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
-
+        
         j = sol.select()
         job = sol.prob.jobs[j]
 
         EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
         LF = sol.latest_finish[j]
 
-        possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
+        possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
         feasible_times = []
         for t in possible_times:
             taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
-            if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
+            if all([is_resource_feasible(job, remaining[tau])for tau in taus]):
                 feasible_times.append(t)
 
         start = min(feasible_times)
         sol.schedule(start, j)
-
+        
     sol.finish_time[-1] = max(sol.finish_time)
-    return sol.finish_time
+    return sol
 
 
 def benchmark(max_depth):
-    start = time.time()
-    prefix30 = "data/j30/j30"
-    prefix60 = "data/j60/j60"
-    suffix = "_1.sm"
+    start30 = time.time()
+    results30 = []
 
-    end_times = []
-    
+    global completeSearch
+    global upper_bound
     for i in range(1, 49):
-        filename = f"{prefix30}{i}{suffix}"
-        prob  = read_file(filename)
-        
-        sol = sgs(prob)
-        times = entry(prob, sol.finish_time[-1], max_depth)
-        print(times)
-        end_times.append(times[-1])
-
-    print(f"j30: {end_times}")
-    print(sum(end_times))
-    print(f"test completed in {(time.time()-start)} seconds!")
-
-    start = time.time()
-    end_times = []
-    
+        completeSearch = []
+        file = "data/j30/j30" + str(i) + "_1.sm"
+        prob = read_file(file)
+        upper_bound = max(sgs(prob).finish_time)
+        sol  = start_complete_search(prob, max_depth)
+        print("j30" + str(i) + "_1.sm done!")
+        results30.append(sol)
+    finish30 = time.time()
+    results60 = []
+    start60 = time.time()
     for i in range(1, 49):
-        filename = f"{prefix60}{i}{suffix}"
-        prob  = read_file(filename)
-        
-        sol = sgs(prob)
-        times = entry(prob, sol.finish_time[-1], max_depth)
-        print(times)
-        end_times.append(times[-1])
-    
-    print(f"j60: {end_times}")
-    print(f"test completed in {(time.time()-start)} seconds!")
+        completeSearch = []
+        file = "data/j60/j60" + str(i) + "_1.sm"
+        prob = read_file(file)
+        sol  = start_complete_search(prob, max_depth)
+        print("j60" + str(i) + "_1.sm done!")
+        results60.append(sol)
+    finish60 = time.time()
 
-import time
+    print(f"J30 test completed in {(finish30 - start30)} seconds!")
+    print(results30)
+    print("The sum was ", sum(results30))
+    print()
+    print(f"J60 test completed in {(finish60 - start60)} seconds!")
+    print(results60)
+    print("The sum was ", sum(results60))
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        benchmark()
-    
-    if len(sys.argv) == 2:
+        benchmark(4)
+
+    elif len(sys.argv) == 2:
         filename = sys.argv[1]
         prob = read_file(filename)
-        initial = sgs(prob)
-        print(initial.finish_time[-1])
-        sol  = entry(prob, initial.finish_time[-1], 5)
-        print(sol)
-
-    if len(sys.argv) == 3:
+        sol = start_complete_search(prob, 4)
+        print(sol.finish_time)
+    elif len(sys.argv) == 3:
         filename = sys.argv[1]
         if filename == "benchmark":
             benchmark(int(sys.argv[2]))
         else:
             prob = read_file(filename)
-            initial = sgs(prob)
-            print(initial.finish_time[-1])
-            sol  = entry(prob, initial.finish_time[-1], int(sys.argv[2]))
-            print(sol)
+            start_complete_search(prob, int(sys.argv[2]))
+            print(sol.finish_time) 
+    else:
+        print(
+"""
+Usage: python dfs.py [filename] [max-depth]
+Default filename: benchmark
+Default depth: 5
+""")
