@@ -125,7 +125,7 @@ def beam_search(parent_solution, n_solutions):
 
     
 def get_solution(sol):
-    for i in range(1, len(sol.unprocessed)):
+    for i in range(len(sol.unprocessed)):
         sol.calc_eligible()
 
         finish_times = [sol.finish_time[j] for j in sol.scheduled]
