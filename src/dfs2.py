@@ -1,5 +1,6 @@
 import sys
 import queue
+import time
 from copy import copy, deepcopy
 
 from data import *
@@ -98,7 +99,7 @@ def benchmark(max_depth):
         end_times.append(times[-1])
 
     print(f"j30: {end_times}")
-    print(sum(end_times))
+    print(f"The sum was {sum(end_times)}")
     print(f"test completed in {(time.time()-start)} seconds!")
 
     start = time.time()
@@ -114,32 +115,31 @@ def benchmark(max_depth):
         end_times.append(times[-1])
     
     print(f"j60: {end_times}")
+    print(f"The sum was {sum(end_times)}")
     print(f"test completed in {(time.time()-start)} seconds!")
 
-import time
+def run(filename, depth):
+    prob    = read_file(filename)
+    initial = sgs(prob)
+    sol     = entry(prob, initial.finish_time[-1], depth)
+    if sol[-1] == initial.finish_time[-1]:
+        print("No improvement over SGS")
+        print(initial.finish_time)
+    else:
+        print(sol)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         benchmark(5)
     
     elif len(sys.argv) == 2:
-        filename = sys.argv[1]
-        prob = read_file(filename)
-        initial = sgs(prob)
-        print(initial.finish_time[-1])
-        sol  = entry(prob, initial.finish_time[-1], 5)
-        print(sol)
+        run(sys.argv[1], 5)
 
     elif len(sys.argv) == 3:
-        filename = sys.argv[1]
-        if filename == "benchmark":
+        if sys.argv[1] == "benchmark":
             benchmark(int(sys.argv[2]))
         else:
-            prob = read_file(filename)
-            initial = sgs(prob)
-            print(initial.finish_time[-1])
-            sol  = entry(prob, initial.finish_time[-1], int(sys.argv[2]))
-        print(sol)
+            run(sys.argv[1], int(sys.argv[2]))
     else:
         print(
 """

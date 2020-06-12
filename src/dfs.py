@@ -3,6 +3,8 @@ from sgs import *
 import time
 
 def start_complete_search(prob, n_levels):
+    global completeSearch
+    completeSearch = []
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
@@ -34,7 +36,7 @@ def complete_search(parent_solution, recursion_level, n_levels):
     recursion_level: The number of scheduled activities of the parent solution.
     n_levels:        The number of levels we want to to fully explore.
     '''
-
+    global completeSearch
     parent_solution.calc_eligible()
     if recursion_level < n_levels:
         finish_times = [parent_solution.finish_time[j] for j in parent_solution.scheduled]
@@ -135,24 +137,23 @@ def benchmark(max_depth):
     print(results60)
     print("The sum was ", sum(results60))
 
+def run(filename, depth):
+    prob    = read_file(filename)
+    sol     = start_complete_search(prob, depth)
+    print(sol)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         benchmark(4)
 
     elif len(sys.argv) == 2:
-        filename = sys.argv[1]
-        prob = read_file(filename)
-        sol = start_complete_search(prob, 4)
-        print(sol.finish_time)
+        run(sys.argv[1], 4)
+        
     elif len(sys.argv) == 3:
-        filename = sys.argv[1]
-        if filename == "benchmark":
+        if sys.argv[1] == "benchmark":
             benchmark(int(sys.argv[2]))
         else:
-            prob = read_file(filename)
-            start_complete_search(prob, int(sys.argv[2]))
-            print(sol.finish_time) 
+            run(sys.argv[1], int(sys.argv[2]))
     else:
         print(
 """

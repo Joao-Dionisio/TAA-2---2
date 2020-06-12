@@ -167,6 +167,7 @@ def benchmark(n_solutions):
         results.append(sol)
 
     print(results)
+    print(f"The sum was {sum(results)}")
     print("test completed in %f seconds!" % (time.time()-start))
 
     results = []
@@ -180,30 +181,29 @@ def benchmark(n_solutions):
         results.append(sol)
 
     print(results)
+    print(f"The sum was {sum(results)}")
     print("test completed in %f seconds!" % (time.time()-start))
 
-if __name__ == "__main__":
+def run(filename, width):
     global beamSearch
+    prob       = read_file(filename)
+    beamSearch = candidateSolutions()
+    sol        = start_beam_search(filename, 1)
+    print(sol)
+
+
+if __name__ == "__main__":
     if len(sys.argv) == 1:
         benchmark(1)
     
     elif len(sys.argv) == 2:
-        global beamSearch
-        filename = sys.argv[1]
-        prob = read_file(filename)
-        beamSearch = candidateSolutions()
-        sol = start_beam_search(file, 1)
-        print(sol)
+        run(sys.argv[1], 1)
 
     elif len(sys.argv) == 3:
-        filename = sys.argv[1]
-        if filename == "benchmark":
+        if sys.argv[1] == "benchmark":
             benchmark(int(sys.argv[2]))
         else:
-            prob = read_file(filename)
-            beamSearch = candidateSolutions()
-            sol = start_beam_search(file, int(sys.argv[2]))
-            print(sol)
+            run(sys.argv[1], int(sys.argv[2]))
         
     else:
         print(

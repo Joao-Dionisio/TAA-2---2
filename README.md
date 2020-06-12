@@ -36,19 +36,21 @@ All files take arguments as in:
 
 `> python prog.py [filename] [int-parameter]`
 
-Giving no arguments runs the default benchmark for both j30 and j60 datasets.
+To run the benchmark:
+
+`> python prog.py`
+
+To run the benchmark with a diferent bound:
+
+`> python prog.py benchmark [bound]`
+
+To run for a specific file (bound can be ommited):
+
+`> python prog.py [path/to/file] [bound]`
 
 The first dfs is slower and consumes gigabytes of memory but produces better results. The second dfs is much faster and wastes little memory but produces worse results. Maximum depth can be passed as an argument when running the program. For dfs.py set the depth to 6 or lower, for dfs2.py set it to 7 or lower.
 
-For the beam-search, the beam width can be passed as a paremeter.
-
-Example: `> python src/beam-search.py benchmark 2`
-
-Output:
-
-`j30: [49, 41, 72, 49, 57, 64, 55, 44, 85, 46, 55, 47, 66, 51, 46, 51, 66, 53, 40, 57, 95, 43, 63, 53, 99, 63, 43, 69, 91, 51, 43, 61, 65, 69, 57, 66, 82, 49, 56, 51, 96, 60, 58, 50, 94, 62, 64, 63]`
-
-`j60: [80, 69, 60, 84, 89, 64, 77, 64, 99, 85, 76, 59, 125, 65, 84, 64, 97, 85, 62, 60, 114, 69, 75, 65, 127, 83, 96, 92, 119, 78, 65, 69, 110, 72, 90, 61, 110, 78, 80, 86, 139, 86, 112, 84, 112, 87, 75, 71]`
+For the beam-search, the beam width can be passed as a paremeter. Set it to 2 or lower.
 
 ## References
 
