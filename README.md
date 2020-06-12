@@ -50,7 +50,7 @@ To run for a specific file (bound can be ommited):
 
 The first dfs is slower and consumes gigabytes of memory but produces better results. The second dfs is much faster and wastes little memory but produces worse results. Maximum depth can be passed as an argument when running the program. For dfs.py set the depth to 6 or lower, for dfs2.py set it to 7 or lower.
 
-For the beam-search, the beam width can be passed as a paremeter. Set it to 2 or lower.
+For the beam-search, the beam width can be passed as a paremeter. It scales quite well, we were able to run it with 10.
 
 ## References
 

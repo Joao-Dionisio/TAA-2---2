@@ -188,16 +188,16 @@ def run(filename, width):
     global beamSearch
     prob       = read_file(filename)
     beamSearch = candidateSolutions()
-    sol        = start_beam_search(filename, 1)
+    sol        = start_beam_search(filename, width)
     print(sol)
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        benchmark(1)
+        benchmark(5)
     
     elif len(sys.argv) == 2:
-        run(sys.argv[1], 1)
+        run(sys.argv[1], 5)
 
     elif len(sys.argv) == 3:
         if sys.argv[1] == "benchmark":
