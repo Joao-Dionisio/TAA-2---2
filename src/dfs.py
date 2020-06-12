@@ -80,7 +80,7 @@ def sgs_(sol):
     return sol.finish_time
 
 
-def benchmark():
+def benchmark(max_depth):
     start = time.time()
     prefix30 = "data/j30/j30"
     prefix60 = "data/j60/j60"
@@ -93,7 +93,7 @@ def benchmark():
         prob  = read_file(filename)
         
         sol = sgs(prob)
-        times = entry(prob, sol.finish_time[-1], 5)
+        times = entry(prob, sol.finish_time[-1], max_depth)
         print(times)
         end_times.append(times[-1])
 
@@ -109,7 +109,7 @@ def benchmark():
         prob  = read_file(filename)
         
         sol = sgs(prob)
-        times = entry(prob, sol.finish_time[-1], 5)
+        times = entry(prob, sol.finish_time[-1], max_depth)
         print(times)
         end_times.append(times[-1])
     
@@ -132,8 +132,11 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 3:
         filename = sys.argv[1]
-        prob = read_file(filename)
-        initial = sgs(prob)
-        print(initial.finish_time[-1])
-        sol  = entry(prob, initial.finish_time[-1], sys.argv[2])
-        print(sol)
+        if filename == "benchmark":
+            benchmark(int(sys.argv[2]))
+        else:
+            prob = read_file(filename)
+            initial = sgs(prob)
+            print(initial.finish_time[-1])
+            sol  = entry(prob, initial.finish_time[-1], int(sys.argv[2]))
+            print(sol)
