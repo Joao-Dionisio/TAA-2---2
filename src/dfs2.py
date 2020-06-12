@@ -48,38 +48,7 @@ def sgs_search(sol, index, best, max_depth):
 
         return best
 
-    else: return sgs_(sol)
-
-def sgs_(sol):
-
-    for i in range(len(sol.unprocessed)):
-        sol.calc_eligible()
-
-        finish_times = [sol.finish_time[j] for j in sol.scheduled]
-
-        remaining = {}
-        for t in finish_times:
-            remaining[t] = sol.calc_remaining(t)
-
-        j = sol.select()
-        job = sol.prob.jobs[j]
-
-        EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
-        LF = sol.latest_finish[j]
-
-        possible_times = [t for t in finish_times if t <= LF - job.duration and t >= EF - job.duration]
-        feasible_times = []
-        for t in possible_times:
-            taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
-            if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
-                feasible_times.append(t)
-
-        start = min(feasible_times)
-        sol.schedule(start, j)
-
-    sol.finish_time[-1] = max(sol.finish_time)
-    return sol.finish_time
-
+    else: return sgs_partial(sol)
 
 def benchmark(max_depth):
     start = time.time()

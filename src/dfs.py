@@ -13,7 +13,7 @@ def start_complete_search(prob, n_levels):
     possible_solutions = []
 
     for i in completeSearch:
-        possible_solutions.append(get_solution(i))
+        possible_solutions.append(sgs_partial(i))
 
     min = float('inf')
     for i in possible_solutions:
@@ -68,39 +68,6 @@ def complete_search(parent_solution, recursion_level, n_levels):
     if recursion_level == n_levels:
         completeSearch.append(parent_solution)
         return
-    
-    
-def get_solution(sol):
-    '''
-    Runs the sgs algorithm, but on a project that already started being planned
-    '''
-    for i in range(len(sol.unprocessed)):
-        sol.calc_eligible()
-
-        finish_times = [sol.finish_time[j] for j in sol.scheduled]
-
-        remaining = {}
-        for t in finish_times:
-            remaining[t] = sol.calc_remaining(t)
-        
-        j = sol.select()
-        job = sol.prob.jobs[j]
-
-        EF = max([sol.finish_time[h] for h in job.predecessors]) + job.duration
-        LF = sol.latest_finish[j]
-
-        possible_times = [t for t in range(EF - job.duration, LF - job.duration) if t in finish_times]
-        feasible_times = []
-        for t in possible_times:
-            taus = [tau for tau in range(t, t + job.duration) if tau in finish_times]
-            if all([is_resource_feasible(job, remaining[tau])for tau in taus]):
-                feasible_times.append(t)
-
-        start = min(feasible_times)
-        sol.schedule(start, j)
-        
-    sol.finish_time[-1] = max(sol.finish_time)
-    return sol
 
 
 def benchmark(max_depth):

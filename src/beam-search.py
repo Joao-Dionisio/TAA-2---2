@@ -15,8 +15,8 @@ class completeSearchSolution(Solution):
     # Calculates the fitness of a solution, bassed on the time provided by sgs
     def calc_solution_fitness(self):
         temp_sol = deepcopy(self)
-        # solution_fitness = max(get_solution(temp_sol).finish_time)
-        solution_fitness = get_solution(temp_sol).finish_time[-1]
+        # solution_fitness = max(sgs_partial(temp_sol).finish_time)
+        solution_fitness = sgs_partial(temp_sol).finish_time[-1]
         self.solution_fitness = 1/solution_fitness
 
 
@@ -49,7 +49,7 @@ def start_beam_search(file, n_solutions):
     
     for i in range(len(beamSearch.candidate_solutions)):
         if beamSearch.candidate_solutions[i].finish_time[-1] == 0:
-            beamSearch.candidate_solutions[i] = get_solution(beamSearch.candidate_solutions[i])
+            beamSearch.candidate_solutions[i] = sgs_partial(beamSearch.candidate_solutions[i])
 
     min = float('inf')
     for i in beamSearch.candidate_solutions:
@@ -124,7 +124,7 @@ def beam_search(parent_solution, n_solutions):
             beam_search(beamSearch.candidate_solutions[index], n_solutions) 
 
     
-def get_solution(sol):
+def sgs_partial(sol):
     for i in range(len(sol.unprocessed)):
         sol.calc_eligible()
 
