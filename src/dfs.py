@@ -5,15 +5,16 @@ from copy import copy, deepcopy
 from data import *
 from sgs import *
 
-def entry(prob, cmax):
+def entry(prob, cmax, max_depth):
     sol = Solution(prob)
     sol.backward_pass()
     sol.schedule(id=0, start_time=0)
-    return sgs_search(sol, 1, [cmax])
+    best = [cmax]
+    return sgs_search(sol, 1, [cmax], max_depth)
 
 
-def sgs_search(sol, index, best):
-    if index < 7:
+def sgs_search(sol, index, best, max_depth):
+    if index < max_depth:
         sol.calc_eligible()
 
         finish_times = [sol.finish_time[j] for j in sol.scheduled]
@@ -21,7 +22,7 @@ def sgs_search(sol, index, best):
         remaining = {}
         for t in finish_times:
             remaining[t] = sol.calc_remaining(t)
-
+    
         for j in sol.eligible:
             new_sol = deepcopy(sol)
             new_sol.eligible.remove(j)
@@ -37,11 +38,9 @@ def sgs_search(sol, index, best):
                 if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                     feasible_times.append(t)
 
-            t = min(feasible_times)
-
-            new_sol.schedule(t, j)  
-
-            times = sgs_search(new_sol, index + 1, best)
+            start = min(feasible_times)
+            new_sol.schedule(start, j)  
+            times = sgs_search(new_sol, index + 1, best, max_depth)
 
             if times[-1] < best[-1]:
                 best = times
@@ -74,18 +73,15 @@ def sgs_(sol):
             if all([is_resource_feasible(job, remaining[tau]) for tau in taus]):
                 feasible_times.append(t)
 
-
         start = min(feasible_times)
-
-        # Add job to solution
         sol.schedule(start, j)
 
+    sol.finish_time[-1] = max(sol.finish_time)
     return sol.finish_time
 
 
 def benchmark():
     start = time.time()
-
     prefix30 = "data/j30/j30"
     prefix60 = "data/j60/j60"
     suffix = "_1.sm"
@@ -97,32 +93,47 @@ def benchmark():
         prob  = read_file(filename)
         
         sol = sgs(prob)
-        times = entry(prob, sol.finish_time[-1])
+        times = entry(prob, sol.finish_time[-1], 5)
         print(times)
         end_times.append(times[-1])
 
     print(f"j30: {end_times}")
     print(sum(end_times))
     print(f"test completed in {(time.time()-start)} seconds!")
-    # end_times = []
 
-    # for i in range(1,48):
-    #     filename = f"{prefix60}{i}{suffix}"
-    #     prob = read_file(filename)
-    #     sol = sgs(prob)
-    #     end_times.append(sol.finish_time[-1])
+    start = time.time()
+    end_times = []
     
-    # print(f"j60: {end_times}")
+    for i in range(1, 49):
+        filename = f"{prefix60}{i}{suffix}"
+        prob  = read_file(filename)
+        
+        sol = sgs(prob)
+        times = entry(prob, sol.finish_time[-1], 5)
+        print(times)
+        end_times.append(times[-1])
+    
+    print(f"j60: {end_times}")
+    print(f"test completed in {(time.time()-start)} seconds!")
 
 import time
 
 if __name__ == "__main__":
-    try:
+    if len(sys.argv) == 1:
+        benchmark()
+    
+    if len(sys.argv) == 2:
         filename = sys.argv[1]
         prob = read_file(filename)
         initial = sgs(prob)
         print(initial.finish_time[-1])
-        sol  = entry(prob, initial.finish_time[-1])
+        sol  = entry(prob, initial.finish_time[-1], 5)
         print(sol)
-    except IndexError:
-        benchmark()
+
+    if len(sys.argv) == 3:
+        filename = sys.argv[1]
+        prob = read_file(filename)
+        initial = sgs(prob)
+        print(initial.finish_time[-1])
+        sol  = entry(prob, initial.finish_time[-1], sys.argv[2])
+        print(sol)
